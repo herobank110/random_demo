@@ -5,7 +5,6 @@ Author: David Kanekanian
 from factorygame import GameEngine, GameplayUtilities, Loc, MathStat
 from factorygame.core.blueprint import FColor, GeomHelper, WorldGraph, PolygonNode, GridGismo, GeomHelper
 from tkinter import Button
-from random import randrange
 
 
 def get_edge_lengths_open(verts):
@@ -36,14 +35,17 @@ class FabrikSolver:
             # in terms of coordinates
             self.verts = tuple(map(lambda p: p.location, solver.points))
             self.lengths = get_edge_lengths_open(self.verts)
-            self.begin = solver.points[0].location
-            self.end = solver.end_effector.location
+            # Copy the first point into the start.
+            self.start = Loc(solver.points[0].location)
+            self.goal = solver.end_effector.location
 
     def __init__(self):
         # in terms of actors (with locations)
         self.points = []
+        self.tolerance = 0.1
+        self.max_iterations = 10
         self.end_effector = None
-        self._last_points = None
+        self._last_verts = None
 
     def solve(self):
         if len(self.points) < 2 or self.end_effector is None:
@@ -51,12 +53,20 @@ class FabrikSolver:
 
         data = self._SolveData(self)
 
-        if abs(data.end - data.begin) > sum(data.lengths):
+        if abs(data.goal - data.start) > sum(data.lengths):
             # The effector is beyond joint capability.
-            FabrikSolver._straighten_towards(data, data.end)
-            FabrikSolver._apply_to_actors(data.verts, self.points)
+            FabrikSolver._straighten_towards(data, data.goal)
         else:
-            pass
+            # The effector is within reach.
+            if self._last_verts is None:
+                # Cannot solve if last verts not valid.
+                # Prepare last verts for the next iteration.
+                self._last_verts = data.verts
+                return
+            FabrikSolver._do_solve(data, data.goal)
+
+        # Save the new locations to the actors.
+        FabrikSolver._apply_to_actors(data.verts, self.points)
 
         # Save for the next solve.
         self._last_verts = data.verts
@@ -67,13 +77,52 @@ class FabrikSolver:
             actor.location = vert
 
     @staticmethod
-    def _straighten_towards(data, end):
-        direction = end - data.begin
+    def _straighten_towards(data, goal):
+        direction = goal - data.start
         direction /= abs(direction)
 
         verts = list(data.verts)
         for i, length_to_previous in zip(range(1, len(verts)), data.lengths):
             verts[i] = verts[i - 1] + direction * length_to_previous
+        data.verts = tuple(verts)
+
+    @staticmethod
+    def _do_solve(data: _SolveData, goal, **kw):
+        """
+        Available keywords:
+        iterations: maximum number of forward and backward iterations
+        tolerance: maximum distance from goal to stop iterations
+        """
+        tolerance = kw.get("tolerance", 0.01)
+        iterations = kw.get("iterations", 10)
+
+        # Start at the end.
+        verts = list(data.verts)
+
+        for _ in range(iterations):
+            # Put the end vertex at the goal
+            verts[-1] = goal
+
+            # Iterate backwards to solve in place.
+            for i in range(len(verts) - 1, 0, -1):
+                direction = verts[i - 1] - verts[i]
+                direction /= abs(direction)
+                verts[i - 1] = verts[i] + direction * data.lengths[i - 1]
+
+            # Put the first point at the original start.
+            verts[0] = data.start
+
+            # Iterate backwards to solve in place.
+            for i in range(len(verts) - 1):
+                direction = verts[i + 1] - verts[i]
+                direction /= abs(direction)
+                verts[i + 1] = verts[i] + direction * data.lengths[i]
+
+            if abs(verts[-1] - data.goal) <= tolerance:
+                # Stop early if within tolerance.
+                break
+
+        # Save back as a tuple.
         data.verts = tuple(verts)
 
 
