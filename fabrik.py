@@ -3,8 +3,10 @@ Author: David Kanekanian
 """
 
 from factorygame import GameEngine, GameplayUtilities, Loc, MathStat
-from factorygame.core.blueprint import FColor, GeomHelper, WorldGraph, PolygonNode, GridGismo, GeomHelper
+from factorygame.core.blueprint import FColor, GeomHelper, WorldGraph, PolygonNode, GridGismo
 from tkinter import Button
+
+from factorygame.core.engine_base import ETickGroup
 
 
 def get_edge_lengths_open(verts):
@@ -42,8 +44,6 @@ class FabrikSolver:
     def __init__(self):
         # in terms of actors (with locations)
         self.points = []
-        self.tolerance = 0.1
-        self.max_iterations = 10
         self.end_effector = None
         self._last_verts = None
 
@@ -82,12 +82,12 @@ class FabrikSolver:
         direction /= abs(direction)
 
         verts = list(data.verts)
-        for i, length_to_previous in zip(range(1, len(verts)), data.lengths):
-            verts[i] = verts[i - 1] + direction * length_to_previous
+        for i, length_to_next in zip(range(len(verts)), data.lengths):
+            verts[i + 1] = verts[i] + direction * length_to_next
         data.verts = tuple(verts)
 
     @staticmethod
-    def _do_solve(data: _SolveData, goal, **kw):
+    def _do_solve(data, goal, **kw):
         """
         Available keywords:
         iterations: maximum number of forward and backward iterations
@@ -182,6 +182,7 @@ class DraggablePoint(PolygonNode):
 class EndEffector(DraggablePoint):
     def __init__(self):
         super().__init__()
+        self.primary_actor_tick.tick_group = ETickGroup.PHYSICS
         self.point_index = 20
         self.normal_color = FColor(128)
         self.hover_color = FColor(110)
