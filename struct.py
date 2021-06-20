@@ -1,3 +1,41 @@
+"""
+struct.py
+=========
+
+POD data structure initializer helper utilities.
+
+Author: David Kanekanian
+https://github.com/herobank110/random_demo
+
+Usage
+-----
+
+The initializer helpers are exposed as class decorators. Two variations
+exist: init_list and aggregate. These can not be used together.
+
+- init_list generates a positional argument list constructor
+- aggregate generates a keywords argument constructor
+
+```
+from struct import ctor
+
+@ctor.init_list
+class S:
+    a = 0
+    b = 1
+    c = "hi"
+s = S(1, 2, "hello")
+
+@ctor.aggregate
+class S1:
+    a = 0
+    b = 1
+    c = "hi"
+s1 = S1(a=1, b=2, c="hello")
+```
+"""
+
+
 from itertools import filterfalse
 import re
 
