@@ -21,24 +21,30 @@ class ctor:
     init_list = _init_list
     aggregate = _aggregate
 
-@ctor.init_list
-class S:
-    a = 0
-    b = 1
-    c = "hi"
 
-s = S(1, 2, "hello")
-print("s.a =", s.a)
-print("s.b =", s.b)
-print("s.c =", s.c)
+def test_struct():
+    @ctor.init_list
+    class S:
+        a = 0
+        b = 1
+        c = "hi"
 
-@ctor.aggregate
-class S1:
-    a = 0
-    b = 1
-    c = "hi"
+    s = S(1, 2, "hello")
+    print("s.a =", s.a)
+    print("s.b =", s.b)
+    print("s.c =", s.c)
 
-s1 = S1(a=1, b=2, c="hello")
-print("s1.a =", s1.a)
-print("s1.b =", s1.b)
-print("s1.c =", s1.c)
+    @ctor.aggregate
+    class S1:
+        a = 0
+        b = 1
+        c = "hi"
+
+    s1 = S1(a=1, b=2, c="hello")
+    print("s1.a =", s1.a)
+    print("s1.b =", s1.b)
+    print("s1.c =", s1.c)
+
+if __name__ == '__main__':
+    test_struct()
+
