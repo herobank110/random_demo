@@ -53,6 +53,8 @@ def _aggregate(cls):
             setattr(self, *fa)
             for fa in filter(lambda fa: fa[0] in fields, kw.items())) or None
     cls.__init__ = init(fields)
+    cls.__str__ = lambda self: '{%s}' % ', '.join(map(lambda k: '%s=%s' % k,
+                  map(lambda k: (k, getattr(self, k)), sorted(fields))))
     return cls
 
 class ctor:
@@ -82,6 +84,7 @@ def test_struct():
     print("s1.a =", s1.a)
     print("s1.b =", s1.b)
     print("s1.c =", s1.c)
+    print("s1 =", s1)
 
 if __name__ == '__main__':
     test_struct()
