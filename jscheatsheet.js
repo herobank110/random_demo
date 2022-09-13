@@ -70,41 +70,48 @@ myArray[0] = 2;  // set element at index
 
 // OBJECTS
 
-{a: 1, b: 2}      // object
-{"a": 1, "b": 2}  // object with optional quotes around string keys
-{1: "a", 2: "b"}  // object with number keys and string values
-{}                // empty object
-{a: {b: 2}}       // nested object
+{a: 1, b: 2}        // object
+{"a": 1, "b c": 2}  // object with quotes around keys to circumvent javascript name rules (eg no spaces)
+{1: "a", 2: "b"}    // object with number keys and string values
+{}                  // empty object
+{a: {b: 2}}         // nested object
 
 let x = "s";
-{a: x}      // symbolic value => {a: "s"}
+{x: "a"}    // literal key and value => {x: "a"}
+{x: x}      // symbolic value => {x: "s"}
 {x}         // implicit symbolic value => {x: "s"}
 {[x]: "a"}  // symbolic key => {s: "a"}
-{[x]: x}    // symbolic key and value => {x: "s"}
+{[x]: x}    // symbolic key and value => {s: "s"}
 
 let obj = {a: 1, b: 2};
 obj.a                // get value with dot operator
-obj.a = 3;           // set value with dot operator
 obj["a"]             // get value with square bracket operator
-obj["a"] = 3;        // get value with square bracket operator
-delete object.a;     // remove key-value pair with dot operator
+obj.a = 3;           // set value with dot operator
+obj["a"] = 3;        // set value with square bracket operator
 delete object['a'];  // remove key-value pair with square bracket operator
+delete object.a;     // remove key-value pair with dot operator
 
 // VARIABLES
 
-var x = 2;    // global variable declaration (avoid)
-let x = 2;    // variable declaration
-const x = 2;  // constant declaration
-let x;        // variable declaration without assignment
-delete x;     // delete declaration
+var x = 2;         // global/function variable declaration (usually avoid)
+let x = 2;         // scoped variable declaration
+const x = 2;       // scoped constant declaration
+let x;             // declaration without assignment
+delete x;          // delete declaration
+let x = 2, y = 3;  // multiple declarations
 
 // destructed assignment from array
 let arr = [1, 2]
-let [a, b] = arr;
+let [a, b] = arr;       // a = 1, b = 2
+let [a] = arr;          // pick only first item
+let [, b] = arr;        // skip first item
+let [a, b, c=2] = arr;  // default value
 
 // destructed assignment from object
 let obj = {a: 1, b: 2};
-let {a, b} = obj;
+let {a, b} = obj;    // a = 1, b = 2
+let {a} = obj;       // pick specific keys
+let {a, c=2} = obj;  // default value
 
 // declaration with type comment
 /** @type {number} */
