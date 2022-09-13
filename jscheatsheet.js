@@ -117,7 +117,13 @@ let {a, c=2} = obj;  // default value
 /** @type {number} */
 let x = 2;
 
+// FUNCTIONS
 
+function f() {}  // regular function
+function () {}   // anonymous function
 
-
-
+() => {}      // arrow function
+x => {}       // single parameter without parentheses
+(x, y) => {}  // multiple parameters
+x => x + 1    // single expression return
+x => ({})     // single expression return object
