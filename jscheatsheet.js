@@ -119,11 +119,20 @@ let x = 2;
 
 // FUNCTIONS
 
-function f() {}  // regular function
-function () {}   // anonymous function
+function f() {}           // function
+function f(x) {}          // one parameter
+function f(x=3) {}        // parameter default value
+function f(x, y) {}       // two parameters
+function f(...args) {}    // variable number of parameters
+function f([x, y]) {}     // destructed array parameters
+function f([x, y=3]) {}   // destructed array parameters with default value
+function f({x, y}) {}     // destructed object parameters
+function f({x, y=3}) {}   // destructed object parameters with default value
 
-() => {}      // arrow function
-x => {}       // single parameter without parentheses
-(x, y) => {}  // multiple parameters
-x => x + 1    // single expression return
-x => ({})     // single expression return object
+function () {}  // anonymous function (prefer arrow function)
+() => {}        // arrow function
+x => {}         // single parameter without parentheses
+x => x + 1      // single expression return
+x => ({})       // single expression return object
+(() => {})()    // immediately invoked function expression
+
