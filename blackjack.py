@@ -6,7 +6,7 @@ import random
 import time
 
 
-def simulate(cards, players, results):
+def simulate(cards, bet, players, results):
     hands = [[] for _ in range(players)]
     dealer = []
 
@@ -40,12 +40,15 @@ def simulate(cards, players, results):
         player_sum = sum_a11(hands[player])
         if player_sum > 21:
             results['bust'] += 1
+            results['winnings'] -= bet
         elif dealer_sum > 21 or player_sum > dealer_sum:
             results['win'] += 1
+            results['winnings'] += bet
         elif player_sum == dealer_sum:
             results['push'] += 1
         else:
             results['lose'] += 1
+            results['winnings'] -= bet
 
 
 def get_cards(decks):
@@ -57,8 +60,10 @@ def main():
     results = defaultdict(int)
     cards = get_cards(decks=8)
     games = 100_000
+    bet_per_game = 1
+    players = 1
     for i in range(games):
-        simulate(cards, players=1, results=results)
+        simulate(cards, bet=bet_per_game, players=players, results=results)
         if i % 4 == 0:
             random.shuffle(cards)
 
@@ -69,13 +74,10 @@ def main():
     print(f"Lose: {results['lose']: 6d}")
     print(f"Push: {results['push']: 6d}")
     print(f"Bust: {results['bust']: 6d}")
-    print("")
-    bet_per_game = 1
-    invested = bet_per_game * games
-    left_with = bet_per_game * results['win'] * 2 + bet_per_game * results['push'] - bet_per_game * results['bust'] - bet_per_game * results['lose']
-    print(f"Invested:  {invested: 6d}")
-    print(f"Left with: {left_with: 6d}")
-    print(f"Profit:    {left_with - invested: 6d} ({(left_with - invested) / invested * 100:.2f}%)")
+    print(f"Invested:  {games * bet_per_game: 6d}")
+    print(f"Winnings:  {results['winnings']: 6d}")
+    print(f"Left with: {games * bet_per_game + results['winnings']: 6d}")
+    # print(f"Profit:        {left_with - started_with: 6d} ({(left_with - started_with) / started_with * 100:.2f}%)")
 
 
 if __name__ == '__main__':  
