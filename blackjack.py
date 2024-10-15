@@ -4,6 +4,7 @@ import itertools
 from collections import defaultdict
 import random
 import time
+import statistics
 
 
 def simulate(cards, bets, players, results):
@@ -43,9 +44,10 @@ def simulate(cards, bets, players, results):
             continue
         player_sum = sum_a11(hands[player])
         # double bet
-        if 10 <= player_sum <= 11 and dealer_sum < 11:
-            bets[player] *= 2
-        if player_sum >= 17 or player_sum >= 12 and dealer_sum >= 7:
+        # if 10 <= player_sum <= 11 and dealer_sum < 11:
+        #     bets[player] *= 2
+        if player_sum >= 13 or player_sum >= 12 and dealer_sum >= 11:
+        # if player_sum >= 15:
             break
         hands[player].append(draw())
 
@@ -61,7 +63,6 @@ def simulate(cards, bets, players, results):
         results['invested'] += bet
         if player_sum > 21:
             results['bust'] += 1
-            # results['pot'] -= bet
         elif dealer_sum > 21 or player_sum > dealer_sum:
             results['win'] += 1
             results['winnings'] += bet
@@ -82,26 +83,29 @@ def main():
     results = defaultdict(int)
     cards = get_cards(decks=8)
     games = 100_000
+    variance_samples = 15
     bet_per_game = 1
     players = 1
+    ratio = lambda: results['pot'] / results['invested']
+    ratio_samples = []
     for i in range(games):
         simulate(cards, bets=[bet_per_game] * players, players=players, results=results)
         if i % 4 == 0:
             random.shuffle(cards)
+        if i % int(games / variance_samples) == 0:
+            ratio_samples.append(ratio())
 
-    print(f"Games: {games}")
-    print(f"Time: {(time.time_ns() - start) / 1_000_000} ms")
-    print("")
-    print(f"Win:  {results['win']: 6d}")
-    print(f"Lose: {results['lose']: 6d}")
-    print(f"Push: {results['push']: 6d}")
-    print(f"Bust: {results['bust']: 6d}")
+    print(f"     Games: {games}")
+    print(f"      Time: {(time.time_ns() - start) / 1_000_000_000:.3f}s")
+    print(f"      Wins: {results['win']}")
+    print(f"    Losses: {results['lose']}")
+    print(f"    Pushes: {results['push']}")
+    print(f"     Busts: {results['bust']}")
     print(f"  Invested: {results['invested']}")
     print(f"  Winnings: {results['winnings']}")
     print(f"       Pot: {results['pot']}")
-    ratio = results['pot'] / results['invested']
-    print(f"     Ratio: {ratio:.4f}")
-    # print(f"House Edge: {1 - ratio:.4f}")
+    print(f"House Edge: {1 - (results['win'] + results['push']) / (results['lose'] + results['bust']):.4f}")
+    print(f" Win Ratio: {ratio():.4f} (±{statistics.variance(ratio_samples):.4f})")
 
 
 if __name__ == '__main__':  
