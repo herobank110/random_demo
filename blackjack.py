@@ -6,7 +6,7 @@ import random
 import time
 
 
-def simulate(cards, bet, players, results):
+def simulate(cards, bets, players, results):
     hands = [[] for _ in range(players)]
     dealer = []
 
@@ -26,9 +26,26 @@ def simulate(cards, bet, players, results):
             hands[player].append(draw())
 
     dealer.append(draw())
+    dealer_sum = sum_a11(dealer)
+
+    # payout for blackjack
     for player in range(players):
+        # 3:2 payout for blackjack
+        if sum_a11(hands[player]) == 21:
+            results['win'] += 1
+            results['invested'] += bets[player]
+            results['winnings'] += bets[player] * 1.5
+            results['pot'] += bets[player] * 2.5
+            hands[player] = None
+
+    for player in range(players):
+        if hands[player] is None:
+            continue
         player_sum = sum_a11(hands[player])
-        if player_sum >= 17 or player_sum >= 12 and sum_a11(dealer) >= 7:
+        # double bet
+        if 10 <= player_sum <= 11 and dealer_sum < 11:
+            bets[player] *= 2
+        if player_sum >= 17 or player_sum >= 12 and dealer_sum >= 7:
             break
         hands[player].append(draw())
 
@@ -37,18 +54,23 @@ def simulate(cards, bet, players, results):
     
     dealer_sum = sum_a11(dealer)
     for player in range(players):
+        if hands[player] is None:
+            continue
         player_sum = sum_a11(hands[player])
+        bet = bets[player]
+        results['invested'] += bet
         if player_sum > 21:
             results['bust'] += 1
-            results['winnings'] -= bet
+            # results['pot'] -= bet
         elif dealer_sum > 21 or player_sum > dealer_sum:
             results['win'] += 1
             results['winnings'] += bet
+            results['pot'] += bet * 2
         elif player_sum == dealer_sum:
             results['push'] += 1
+            results['pot'] += bet
         else:
             results['lose'] += 1
-            results['winnings'] -= bet
 
 
 def get_cards(decks):
@@ -63,7 +85,7 @@ def main():
     bet_per_game = 1
     players = 1
     for i in range(games):
-        simulate(cards, bet=bet_per_game, players=players, results=results)
+        simulate(cards, bets=[bet_per_game] * players, players=players, results=results)
         if i % 4 == 0:
             random.shuffle(cards)
 
@@ -74,10 +96,12 @@ def main():
     print(f"Lose: {results['lose']: 6d}")
     print(f"Push: {results['push']: 6d}")
     print(f"Bust: {results['bust']: 6d}")
-    print(f"Invested:  {games * bet_per_game: 6d}")
-    print(f"Winnings:  {results['winnings']: 6d}")
-    print(f"Left with: {games * bet_per_game + results['winnings']: 6d}")
-    # print(f"Profit:        {left_with - started_with: 6d} ({(left_with - started_with) / started_with * 100:.2f}%)")
+    print(f"  Invested: {results['invested']}")
+    print(f"  Winnings: {results['winnings']}")
+    print(f"       Pot: {results['pot']}")
+    ratio = results['pot'] / results['invested']
+    print(f"     Ratio: {ratio:.4f}")
+    # print(f"House Edge: {1 - ratio:.4f}")
 
 
 if __name__ == '__main__':  
