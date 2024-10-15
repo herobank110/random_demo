@@ -46,8 +46,8 @@ def simulate(cards, bets, players, results):
         # double bet
         # if 10 <= player_sum <= 11 and dealer_sum < 11:
         #     bets[player] *= 2
-        if player_sum >= 13 or player_sum >= 12 and dealer_sum >= 11:
-        # if player_sum >= 15:
+        if player_sum >= 13 or player_sum >= 12 and dealer_sum >= 4:
+        # if player_sum >= 16:
             break
         hands[player].append(draw())
 
@@ -82,18 +82,22 @@ def main():
     start = time.time_ns()
     results = defaultdict(int)
     cards = get_cards(decks=8)
-    games = 100_000
-    variance_samples = 15
+    games = 170_000
+    batches = 10
     bet_per_game = 1
     players = 1
-    ratio = lambda: results['pot'] / results['invested']
+    ratio = lambda results: results['pot'] / results['invested']
     ratio_samples = []
+    batch_results = defaultdict(int)
     for i in range(games):
-        simulate(cards, bets=[bet_per_game] * players, players=players, results=results)
-        if i % 4 == 0:
+        simulate(cards, bets=[bet_per_game] * players, players=players, results=batch_results)
+        if i % 8 == 0:
             random.shuffle(cards)
-        if i % int(games / variance_samples) == 0:
-            ratio_samples.append(ratio())
+        if i % (games // batches) == ((games // batches) // 2):
+            ratio_samples.append(ratio(batch_results))
+            for key in batch_results:
+                results[key] += batch_results[key]
+            batch_results = defaultdict(int)
 
     print(f"     Games: {games}")
     print(f"      Time: {(time.time_ns() - start) / 1_000_000_000:.3f}s")
@@ -105,7 +109,7 @@ def main():
     print(f"  Winnings: {results['winnings']}")
     print(f"       Pot: {results['pot']}")
     print(f"House Edge: {1 - (results['win'] + results['push']) / (results['lose'] + results['bust']):.4f}")
-    print(f" Win Ratio: {ratio():.4f} (±{statistics.variance(ratio_samples):.4f})")
+    print(f"     Ratio: {ratio(results):.4f} (min: {min(ratio_samples):.4f}, max: {max(ratio_samples):.4f}, mean: {statistics.mean(ratio_samples):.4f}, σ: {statistics.stdev(ratio_samples):.4f})")
 
 
 if __name__ == '__main__':  
