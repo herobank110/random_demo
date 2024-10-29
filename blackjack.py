@@ -31,13 +31,20 @@ def simulate(cards, bets, players, results):
 
     # payout for blackjack
     for player in range(players):
-        # 3:2 payout for blackjack
         if sum_a11(hands[player]) == 21:
-            results['win'] += 1
-            results['invested'] += bets[player]
-            results['winnings'] += bets[player] * 1.5
-            results['pot'] += bets[player] * 2.5
-            hands[player] = None
+            if dealer_sum < 10:
+                results['win'] += 1
+                results['invested'] += bets[player]
+                results['winnings'] += bets[player] * 1.5
+                results['pot'] += bets[player] * 2.5
+                hands[player] = None
+            elif dealer_sum == 11:
+                # even money
+                results['win'] += 1
+                results['invested'] += bets[player]
+                results['winnings'] += bets[player]
+                results['pot'] += bets[player] * 2
+                hands[player] = None
 
     for player in range(players):
         if hands[player] is None:
