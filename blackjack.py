@@ -93,7 +93,7 @@ def main():
     batches = 10
     bet_per_game = 1
     players = 1
-    ratio = lambda results: results['pot'] / results['invested']
+    ratio = lambda results: results['pot'] / results['invested']  # noqa
     ratio_samples = []
     batch_results = defaultdict(int)
     for i in range(games):
