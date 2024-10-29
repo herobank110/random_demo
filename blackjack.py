@@ -46,17 +46,30 @@ def simulate(cards, bets, players, results):
                 results['pot'] += bets[player] * 2
                 hands[player] = None
 
+    # split on double
     for player in range(players):
         if hands[player] is None:
             continue
-        player_sum = sum_a11(hands[player])
-        # double bet
-        # if 10 <= player_sum <= 11 and dealer_sum < 11:
-        #     bets[player] *= 2
-        if player_sum >= 13 or player_sum >= 12 and dealer_sum >= 4:
-        # if player_sum >= 16:
-            break
-        hands[player].append(draw())
+        card1, card2 = hands[player]
+        if card1 == card2 and (card1 == 1 or card1 - 8 > dealer_sum):
+            hands[player] = [card1]
+            hands.append([card1])
+            # # hands[player] = [1, draw()]
+            # # hands.append([1, draw()])
+            bets.append(bets[player])
+
+    doubled = False
+    for player in range(players):
+        if hands[player] is None:
+            continue
+        while player_sum < 13 and player_sum + 7 > dealer_sum:
+            player_sum = sum_a11(hands[player])
+            # double bet
+            if not doubled and 9 <= player_sum <= 11 and dealer_sum < player_sum:
+                bets[player] *= 2
+                doubled = True
+            # if player_sum >= 14 or player_sum >=12 and dealer_sum > 2:# or player_sum == 12 and dealer_sum >3:# or dealer_sum < player_sum:# and dealer_sum >= 5:
+            hands[player].append(draw())
 
     while sum_a11(dealer) < 17:
         dealer.append(draw())
@@ -82,7 +95,7 @@ def simulate(cards, bets, players, results):
 
 
 def get_cards(decks):
-    return list(range(1, 14)) * 4 * decks
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10] * 4 * decks
 
 
 def main():
