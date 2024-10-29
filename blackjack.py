@@ -82,7 +82,7 @@ def simulate(cards, bets, players, results):
 
 
 def get_cards(decks):
-    return list(range(2, 14)) * 4 * decks
+    return list(range(1, 14)) * 4 * decks
 
 
 def main():
