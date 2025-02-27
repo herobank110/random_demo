@@ -41,7 +41,7 @@ class Button(QtWidgets.QPushButton, ThemeAwareStyle):
 
         self.ripple_pos = None
         # Dynamic property for animation.
-        self.setProperty("ripple_scale", 0.0)
+        self.setProperty("ripple_lerp", 0.0)
 
     def resizeEvent(self, event):
         self.refresh_view()
@@ -50,11 +50,10 @@ class Button(QtWidgets.QPushButton, ThemeAwareStyle):
     def mousePressEvent(self, e):
         self.ripple_pos = e.pos()
 
-        print('anim start')
         anim = QtCore.QPropertyAnimation()
         anim.setParent(self)
         anim.setTargetObject(self)
-        anim.setPropertyName(b"ripple_scale")
+        anim.setPropertyName(b"ripple_lerp")
         anim.setStartValue(0.0)
         anim.setEndValue(1.0)
         anim.setDuration(200)
@@ -62,7 +61,7 @@ class Button(QtWidgets.QPushButton, ThemeAwareStyle):
 
         # def on_finished():
         #     self.ripple_pos = None
-        #     self.setProperty("ripple_scale", 0)
+        #     self.setProperty("ripple_lerp", 0)
         # anim.finished.connect(on_finished)
         anim.start()
 
@@ -80,14 +79,14 @@ class Button(QtWidgets.QPushButton, ThemeAwareStyle):
             painter.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 100)))
             painter.setPen(QtCore.Qt.NoPen)
             max_dimension = max(self.size().width(), self.size().height())
-            print(self.property("ripple_scale"))
-            size = self.property("ripple_scale") * max_dimension // 2
+            lerp = lambda a, b, x: a + (b - a) * x
+            size = lerp(20, max_dimension, self.property("ripple_lerp"))
             painter.drawEllipse(self.ripple_pos, size, size)
 
     def event(self, e):
         if e.type() == QtCore.QEvent.DynamicPropertyChange:
             print(e.propertyName())
-            if e.propertyName().data().decode() == "ripple_scale":
+            if e.propertyName().data().decode() == "ripple_lerp":
                 self.update()
                 return True
         return super().event(e)
