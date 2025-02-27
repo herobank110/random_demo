@@ -39,23 +39,58 @@ class Button(QtWidgets.QPushButton, ThemeAwareStyle):
         # self.sx_changed.connect(lambda: print("hihh"))
         # self.sx = {"color": "red"}
 
+        self.ripple_pos = None
+        # Dynamic property for animation.
+        self.setProperty("ripple_scale", 0.0)
+
     def resizeEvent(self, event):
         self.refresh_view()
         return super().resizeEvent(event)
 
     def mousePressEvent(self, e):
-        pos = e.pos()
-        ripple = QtWidgets.QWidget(parent=self, styleSheet="background-color: red;border-radius: 5px;")
-        ripple.resize(40, 40)
-        ripple.show()
-        ripple.move(pos - QtCore.QPoint(20, 20))
+        self.ripple_pos = e.pos()
+
+        print('anim start')
+        anim = QtCore.QPropertyAnimation()
+        anim.setParent(self)
+        anim.setTargetObject(self)
+        anim.setPropertyName(b"ripple_scale")
+        anim.setStartValue(0.0)
+        anim.setEndValue(1.0)
+        anim.setDuration(200)
+        anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
+
+        # def on_finished():
+        #     self.ripple_pos = None
+        #     self.setProperty("ripple_scale", 0)
+        # anim.finished.connect(on_finished)
+        anim.start()
 
         return super().mousePressEvent(e)
 
-    def event(self, event):
-        if event.type() == QtCore.QEvent.MouseButtonPress:
-            print("Button pressed")
-        return super().event(event)
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self.ripple_pos:
+            painter = QtGui.QPainter(self)
+            clip_path = QtGui.QPainterPath()
+            min_dimension = min(self.size().width(), self.size().height())
+            clip_path.addRoundedRect(self.rect(), min_dimension // 2, min_dimension // 2)
+            painter.setClipPath(clip_path)
+            painter.setRenderHint(QtGui.QPainter.Antialiasing)
+            painter.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 100)))
+            painter.setPen(QtCore.Qt.NoPen)
+            max_dimension = max(self.size().width(), self.size().height())
+            print(self.property("ripple_scale"))
+            size = self.property("ripple_scale") * max_dimension // 2
+            painter.drawEllipse(self.ripple_pos, size, size)
+
+    def event(self, e):
+        if e.type() == QtCore.QEvent.DynamicPropertyChange:
+            print(e.propertyName())
+            if e.propertyName().data().decode() == "ripple_scale":
+                self.update()
+                return True
+        return super().event(e)
 
     def refresh_view(self):
         min_dimension = min(self.size().width(), self.size().height())
