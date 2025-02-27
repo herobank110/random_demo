@@ -58,18 +58,21 @@ def simulate(cards, bets, players, results):
             # # hands.append([1, draw()])
             bets.append(bets[player])
 
-    doubled = False
     for player in range(players):
+        doubled = False
         if hands[player] is None:
             continue
-        while player_sum < 13 and player_sum + 7 > dealer_sum:
+        while True:
             player_sum = sum_a11(hands[player])
             # double bet
             if not doubled and 9 <= player_sum <= 11 and dealer_sum < player_sum:
                 bets[player] *= 2
                 doubled = True
             # if player_sum >= 14 or player_sum >=12 and dealer_sum > 2:# or player_sum == 12 and dealer_sum >3:# or dealer_sum < player_sum:# and dealer_sum >= 5:
-            hands[player].append(draw())
+            if player_sum < 16 and player_sum + 8 > dealer_sum:
+                hands[player].append(draw())
+            else:
+                break
 
     while sum_a11(dealer) < 17:
         dealer.append(draw())
