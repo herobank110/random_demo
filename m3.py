@@ -56,7 +56,7 @@ class Button(QtWidgets.QPushButton, ThemeAwareStyle):
         anim.setPropertyName(b"ripple_lerp")
         anim.setStartValue(0.0)
         anim.setEndValue(1.0)
-        anim.setDuration(200)
+        anim.setDuration(500)
         anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
 
         # def on_finished():
@@ -76,16 +76,17 @@ class Button(QtWidgets.QPushButton, ThemeAwareStyle):
             clip_path.addRoundedRect(self.rect(), min_dimension // 2, min_dimension // 2)
             painter.setClipPath(clip_path)
             painter.setRenderHint(QtGui.QPainter.Antialiasing)
-            painter.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 100)))
+            val = self.property("ripple_lerp")
+            lerp = lambda a, b, x: a + (b - a) * x
+            opacity = lerp(120, 0, val ** 2)
+            painter.setBrush(QtGui.QBrush(QtGui.QColor(101, 85, 143, opacity)))
             painter.setPen(QtCore.Qt.NoPen)
             max_dimension = max(self.size().width(), self.size().height())
-            lerp = lambda a, b, x: a + (b - a) * x
-            size = lerp(20, max_dimension, self.property("ripple_lerp"))
+            size = lerp(40, max_dimension, val)
             painter.drawEllipse(self.ripple_pos, size, size)
 
     def event(self, e):
         if e.type() == QtCore.QEvent.DynamicPropertyChange:
-            print(e.propertyName())
             if e.propertyName().data().decode() == "ripple_lerp":
                 self.update()
                 return True
