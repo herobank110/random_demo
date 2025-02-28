@@ -33,7 +33,7 @@ class Button(QtWidgets.QPushButton, ThemeAwareStyle):
             "color": "black",
             "border-radius": "4px",
             "padding": "0.5em 2em",
-            "font-size": "14pt",
+            "font-size": "12pt",
         }
         self.setStyleSheet(to_style_sheet(self._style))
         # self.sx_changed.connect(lambda: print("hihh"))
@@ -56,7 +56,7 @@ class Button(QtWidgets.QPushButton, ThemeAwareStyle):
         anim.setPropertyName(b"ripple_lerp")
         anim.setStartValue(0.0)
         anim.setEndValue(1.0)
-        anim.setDuration(500)
+        anim.setDuration(400)
         anim.setEasingCurve(QtCore.QEasingCurve.OutCubic)
 
         # def on_finished():
@@ -78,7 +78,7 @@ class Button(QtWidgets.QPushButton, ThemeAwareStyle):
             painter.setRenderHint(QtGui.QPainter.Antialiasing)
             val = self.property("ripple_lerp")
             lerp = lambda a, b, x: a + (b - a) * x
-            opacity = lerp(120, 0, val ** 2)
+            opacity = lerp(80, 0, val ** 2)
             painter.setBrush(QtGui.QBrush(QtGui.QColor(101, 85, 143, opacity)))
             painter.setPen(QtCore.Qt.NoPen)
             max_dimension = max(self.size().width(), self.size().height())
