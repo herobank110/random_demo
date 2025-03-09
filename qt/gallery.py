@@ -84,20 +84,28 @@ class RecyclerView(QtWidgets.QScrollArea):
         super().resizeEvent(event)
 
         self.recycler.setFixedWidth(self.widget().width())
-        self.recycler.adjustSize()
-        self.recycler.update()
-        if len(self._bound_views) < 3:
-            print("save")
-            self._ensure_enough_views_exist()
-            self._bind_and_show()
+        # self.recycler.adjustSize()
+        # self.recycler.update()
+
+        self._ensure_enough_views_exist()
+        self._bind_and_show()
 
     def _bind_and_show(self):
+        print(
+            f"{self.height():03d} {self.verticalScrollBar().value():03d} {self.verticalScrollBar().value() / self.verticalScrollBar().maximum():3.3f} {self._get_item_size_hint().height():03d}\r",
+            end="",
+        )
+        return
         for index in range(len(self._adapter.data)):
             view = self._get_fresh_view()
             self._adapter.bind_view(view, index)
             self._bound_views[index] = view
             self._unbound_views.remove(view)
             self.recycling_vbox.addWidget(view)
+
+            # view.show()
+            # self.recycler.adjustSize()
+            # # self.recycling_vbox.update()
 
     def _ensure_enough_views_exist(self):
         """Ensure that there are enough views to fill the visible area."""
@@ -113,12 +121,17 @@ class RecyclerView(QtWidgets.QScrollArea):
     def _get_fresh_view(self) -> QtWidgets.QWidget:
         """Get an unbound view, or create one if none available."""
         if not self._unbound_views:
+            print("created")
             self._create_view()  # Ensure at least one exists.
         return self._unbound_views[0]
 
     def _create_view(self):
         """Create a new view and add it to the pool."""
         view = self._adapter.create_view()
+
+        view.setParent(self.recycler)  # prevent GC?
+        view.hide()  # is this needed?
+
         self._unbound_views.append(view)
         return view
 
@@ -128,6 +141,7 @@ class RecyclerView(QtWidgets.QScrollArea):
     def scrollContentsBy(self, dx, dy):
         # Called when the scroll area is scrolled.
         super().scrollContentsBy(dx, dy)
+        self._bind_and_show()
         self.recycler.move(0, -self.verticalScrollBar().value())
 
 
@@ -139,8 +153,6 @@ class MyListAdapter(RecyclerViewAdapter):
         label = QtWidgets.QLabel()
         label.setFixedHeight(100)
         label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
-        # label.
-        # label.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed))
         return label
 
     def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
