@@ -137,10 +137,14 @@ class MyListAdapter(RecyclerViewAdapter):
     def create_view(self) -> QtWidgets.QWidget:
         label = QtWidgets.QLabel()
         label.setFixedHeight(100)
+        label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+        # label.
+        # label.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed))
         return label
 
     def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
         view.setText(self.data[index])
+        view.setStyleSheet(f"background-color: {'red' if index % 2 == 0 else 'blue'}")
 
     def get_num_items(self) -> int:
         return len(self.data)
@@ -219,7 +223,7 @@ def main():
     # window.show()
 
     my_list = MyList()
-    my_list.resize(400, 600)
+    my_list.resize(400, 250)
     my_list.show()
 
     # gallery = Gallery()
