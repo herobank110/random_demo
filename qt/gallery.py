@@ -145,7 +145,7 @@ class MyListAdapter(RecyclerViewAdapter):
 
     def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
         view.setText(self.data[index])
-        view.setStyleSheet(f"background-color: {'#88888' if index % 2 == 0 else '#666666'}")
+        view.setStyleSheet(f"background-color: {'#888888' if index % 2 == 0 else '#666666'}")
 
     def get_num_items(self) -> int:
         return len(self.data)
