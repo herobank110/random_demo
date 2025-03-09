@@ -25,7 +25,8 @@ class RecyclerViewAdapter(metaclass=abc.ABCMeta):
     def create_view(self) -> QtWidgets.QWidget:
         """Create a fresh, empty item.
 
-        Its size hint will indicate how much space to allocate for the items.
+        Its size hint will indicate how much space to allocate for the
+        items, and is assumed to be constant for all items.
         """
 
     @abc.abstractmethod
@@ -41,11 +42,10 @@ class RecyclerView(QtWidgets.QScrollArea):
     """A scrollable container used to efficiently show a large number of items."""
 
     _NUM_EXCESS_VIEWS = 2
+    """The number of views outside of the visible area to prepare for quick scrolling."""
 
     def __init__(self):
         super().__init__()
-
-        """The number of views outside of the visible area to prepare for quick scrolling."""
 
         self._adapter: Optional[RecyclerViewAdapter] = None
         """The adapter aka delegate."""
@@ -139,7 +139,7 @@ class MyListAdapter(RecyclerViewAdapter):
         label.setFixedHeight(100)
         return label
 
-    def bind_view(self, view: QtWidgets.QWidget, index: int) -> None:
+    def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
         view.setText(self.data[index])
 
     def get_size(self) -> int:
