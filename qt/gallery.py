@@ -56,14 +56,14 @@ class RecyclerView(QtWidgets.QScrollArea):
         self._bound_views: Dict[Index, QtWidgets.QWidget] = {}
         """Views that are currently bound to an item in the dataset."""
 
-        # TODO is this needed?
         self.setWidgetResizable(True)
 
-        inner = QtWidgets.QWidget()
+        inner = QtWidgets.QFrame(styleSheet="background-color:green")
+        # inner.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding))
         self.setWidget(inner)
 
         # TODO list only for now, later grid too
-        self.recycler = QtWidgets.QWidget()
+        self.recycler = QtWidgets.QWidget(styleSheet="background-color:yellow")
         self.recycler.setParent(self)
         self.recycler.move(0, 0)
         self.recycling_vbox = QtWidgets.QVBoxLayout(self.recycler)
@@ -82,11 +82,18 @@ class RecyclerView(QtWidgets.QScrollArea):
         self.widget().setFixedHeight(total_height)
 
     def resizeEvent(self, event: QtGui.QResizeEvent):
-        self._ensure_enough_views_exist()
-        self._bind_and_show()
+        super().resizeEvent(event)
+
+        self.recycler.setFixedWidth(self.widget().width())
+        self.recycler.adjustSize()
+        self.recycler.update()
+        if len(self._bound_views) < 3:
+            print("save")
+            self._ensure_enough_views_exist()
+            self._bind_and_show()
 
     def _bind_and_show(self):
-        for index in range(10):
+        for index in range(len(self._adapter.data)):
             view = self._get_fresh_view()
             self._adapter.bind_view(view, index)
             self._bound_views[index] = view
@@ -154,7 +161,7 @@ class MyList(QtWidgets.QWidget):
         vbox1.setSpacing(0)
 
         recycler_view = RecyclerView()
-        data = [f"Item {i:04d}" for i in range(100)]
+        data = [f"Item {i + 1:04d}" for i in range(5)]
         adapter = MyListAdapter(data)
         recycler_view.set_adapter(adapter)
         vbox1.addWidget(recycler_view)
