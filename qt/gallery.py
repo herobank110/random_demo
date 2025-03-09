@@ -58,12 +58,11 @@ class RecyclerView(QtWidgets.QScrollArea):
 
         self.setWidgetResizable(True)
 
-        inner = QtWidgets.QFrame(styleSheet="background-color:green")
-        # inner.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding))
+        inner = QtWidgets.QWidget()
         self.setWidget(inner)
 
         # TODO list only for now, later grid too
-        self.recycler = QtWidgets.QWidget(styleSheet="background-color:yellow")
+        self.recycler = QtWidgets.QWidget()
         self.recycler.setParent(self)
         self.recycler.move(0, 0)
         self.recycling_vbox = QtWidgets.QVBoxLayout(self.recycler)
