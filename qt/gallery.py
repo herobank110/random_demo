@@ -57,9 +57,16 @@ class RecyclerView(QtWidgets.QScrollArea):
         self.setWidget(inner)
 
         # TODO list only for now, later grid too
-        vbox1 = QtWidgets.QVBoxLayout(inner)
-        vbox1.setContentsMargins(0, 0, 0, 0)
-        vbox1.setSpacing(0)
+        self.recycler = QtWidgets.QWidget()
+        self.recycler.setParent(self)
+        self.recycler.move(0, 0)
+        self.recycler.show()
+        self.recycling_vbox = QtWidgets.QVBoxLayout()
+        self.recycling_vbox.setContentsMargins(0, 0, 0, 0)
+        self.recycling_vbox.setSpacing(0)
+
+        # for index in range(10):
+        #     self.inner_layout.addWidget(QtWidgets.QLabel(f"Item {index}"))
 
     def set_adapter(self, adapter: RecyclerViewAdapter):
         self._adapter = adapter
@@ -71,6 +78,15 @@ class RecyclerView(QtWidgets.QScrollArea):
 
     def resizeEvent(self, event: QtGui.QResizeEvent):
         self._ensure_enough_views_exist()
+        self._bind_and_show()
+
+    def _bind_and_show(self):
+        for index in range(10):
+            view = self._get_fresh_view()
+            self._adapter.bind_view(view, index)
+            self.recycling_vbox.addWidget(view)
+            view.show()
+            self._bound_views[index] = view
 
     def _ensure_enough_views_exist(self):
         """Ensure that there are enough views to fill the visible area."""
