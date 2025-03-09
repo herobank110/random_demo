@@ -34,7 +34,7 @@ class RecyclerViewAdapter(metaclass=abc.ABCMeta):
         """Bind a widget, potentially one that is being recycled."""
 
     @abc.abstractmethod
-    def get_size(self) -> int:
+    def get_num_items(self) -> int:
         """Return the number of items in the dataset."""
 
 
@@ -78,7 +78,7 @@ class RecyclerView(QtWidgets.QScrollArea):
 
         # TODO: move to other function
         item_height = self._get_item_size_hint().height()
-        total_height = item_height * self._adapter.get_size()
+        total_height = item_height * self._adapter.get_num_items()
         self.widget().setFixedHeight(total_height)
 
     def resizeEvent(self, event: QtGui.QResizeEvent):
@@ -142,7 +142,7 @@ class MyListAdapter(RecyclerViewAdapter):
     def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
         view.setText(self.data[index])
 
-    def get_size(self) -> int:
+    def get_num_items(self) -> int:
         return len(self.data)
 
 
