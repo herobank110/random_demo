@@ -10,12 +10,21 @@ def generate_image(size: QtCore.QSize, number: int):
     painter.drawText(QtCore.QRect(QtCore.QPoint(), size), QtCore.Qt.AlignCenter, f"Image {number:04d}")
     return image
 
+
+class RecyclerView(QtWidgets.QWidget):
+    """A scrollable container used to efficiently show a large number of items."""
+
+    def __init__(self):
+        super().__init__()
+
+
 class Gallery(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
 
         NUM_COLS = 3
-        NUM_IMAGES = 10_000
+        NUM_IMAGES = 100
+
 
         vbox1 = QtWidgets.QVBoxLayout(self)
         vbox1.setContentsMargins(0, 0, 0, 0)
@@ -31,8 +40,10 @@ class Gallery(QtWidgets.QWidget):
         grid1.setContentsMargins(0, 0, 0, 0)
         grid1.setSpacing(0)
 
-        image = generate_image(QtCore.QSize(240, 120), 0)
+        # scroll_inner.setFixedHeight(1500)
+
         for i in range(NUM_IMAGES):
+            image = generate_image(QtCore.QSize(240, 120), i)
             label = QtWidgets.QLabel()
             label.setPixmap(QtGui.QPixmap.fromImage(image))
             grid1.addWidget(label, i // NUM_COLS, i % NUM_COLS)
