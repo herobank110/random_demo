@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections import abc
-from typing import Optional
+from typing import Dict, List, Optional
 from PySide6 import QtCore, QtWidgets, QtGui
 
 
@@ -14,6 +14,9 @@ def generate_image(size: QtCore.QSize, number: int):
     return image
 
 
+
+Index = int
+
 class RecyclerViewAdapter(metaclass=abc.ABCMeta):
     @abstractmethod
     def create_view(self) -> QtWidgets.QWidget:
@@ -23,21 +26,30 @@ class RecyclerViewAdapter(metaclass=abc.ABCMeta):
         """
     
     @abstractmethod
-    def bind_view(self, view: QtWidgets.QWidget, index: int) -> None:
+    def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
         """Bind a widget, potentially one that is being recycled."""
     
     @abstractmethod
     def get_size(self) -> int:
         """Return the number of items in the dataset."""
 
-
 class RecyclerView(QtWidgets.QScrollArea):
     """A scrollable container used to efficiently show a large number of items."""
 
     def __init__(self):
         super().__init__()
-        self._adapter: Optional[RecyclerViewAdapter] = None
+        self._NUM_EXCESS_VIEWS = 2
+        """The number of views outside of the visible area to prepare for quick scrolling."""
 
+        self._adapter: Optional[RecyclerViewAdapter] = None
+        """The adapter aka delegate."""
+
+        self._views_pool: List[QtWidgets.QWidget] = []
+        """Views that have been created but aren't in use."""
+
+        self._bound_views: Dict[Index, QtWidgets.QWidget] = {}
+        """Views that are currently bound to an item in the dataset."""
+        
         # TODO is this needed?
         self.setWidgetResizable(True)
 
@@ -52,9 +64,39 @@ class RecyclerView(QtWidgets.QScrollArea):
     def set_adapter(self, adapter: RecyclerViewAdapter):
         self._adapter = adapter
 
-        view = self._adapter.create_view()
-        total_height = view.sizeHint().height() * self._adapter.get_size()
+        # TODO: move to other function
+        item_height = self._get_item_size_hint().height()
+        total_height = item_height * self._adapter.get_size()
         self.widget().setFixedHeight(total_height)
+
+    def resizeEvent(self, event: QtGui.QResizeEvent):
+        self._ensure_enough_views_exist()
+
+    def _ensure_enough_views_exist(self):
+        """Ensure that there are enough views to fill the visible area."""
+
+        item_height = self._get_item_size_hint().height()
+        total_possible_bound_views = self.height() // item_height + self._NUM_EXCESS_VIEWS
+
+        # Even if there are less items than views, create some empty
+        # ones since RecyclerView is typically used for large datasets.
+        while len(self._bound_views) + len(self._views_pool) < total_possible_bound_views:
+            self._create_view()
+
+    def _get_fresh_view(self) -> QtWidgets.QWidget:
+        """Get an unbound view, or create one if none available."""
+        if not self._views_pool:
+            self._create_view()  # Ensure at least one exists.
+        return self._views_pool[0]
+
+    def _create_view(self):
+        """Create a new view and add it to the pool."""
+        view = self._adapter.create_view()
+        self._views_pool.append(view)
+        return view
+
+    def _get_item_size_hint(self):
+        return self._get_fresh_view().sizeHint()
 
     def scrollContentsBy(self, dx, dy):
         # Called when the scroll area is scrolled.
@@ -138,7 +180,7 @@ def main():
     # window.show()
 
     my_list = MyList()
-    my_list.setMinimumSize(800, 600)
+    my_list.resize(400, 600)
     my_list.show()
 
     # gallery = Gallery()
