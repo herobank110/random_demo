@@ -97,16 +97,11 @@ class RecyclerView(QtWidgets.QScrollArea):
         """Ensure that there are enough views to fill the visible area."""
 
         item_height = self._get_item_size_hint().height()
-        total_possible_bound_views = (
-            self.height() // item_height + self._NUM_EXCESS_VIEWS
-        )
+        total_possible_bound_views = self.height() // item_height + self._NUM_EXCESS_VIEWS
 
         # Even if there are less items than views, create some empty
         # ones since RecyclerView is typically used for large datasets.
-        while (
-            len(self._bound_views) + len(self._unbound_views)
-            < total_possible_bound_views
-        ):
+        while len(self._bound_views) + len(self._unbound_views) < total_possible_bound_views:
             self._create_view()
 
     def _get_fresh_view(self) -> QtWidgets.QWidget:
