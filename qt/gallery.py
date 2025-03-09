@@ -1,5 +1,4 @@
-from abc import abstractmethod
-from collections import abc
+import abc
 from typing import Dict, List, Optional
 from PySide6 import QtCore, QtWidgets, QtGui
 
@@ -18,33 +17,36 @@ def generate_image(size: QtCore.QSize, number: int):
 Index = int
 
 class RecyclerViewAdapter(metaclass=abc.ABCMeta):
-    @abstractmethod
+    @abc.abstractmethod
     def create_view(self) -> QtWidgets.QWidget:
         """Create a fresh, empty item.
 
         Its size hint will indicate how much space to allocate for the items.
         """
     
-    @abstractmethod
+    @abc.abstractmethod
     def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
         """Bind a widget, potentially one that is being recycled."""
     
-    @abstractmethod
+    @abc.abstractmethod
     def get_size(self) -> int:
         """Return the number of items in the dataset."""
+
 
 class RecyclerView(QtWidgets.QScrollArea):
     """A scrollable container used to efficiently show a large number of items."""
 
+    _NUM_EXCESS_VIEWS = 2
+
     def __init__(self):
         super().__init__()
-        self._NUM_EXCESS_VIEWS = 2
+
         """The number of views outside of the visible area to prepare for quick scrolling."""
 
         self._adapter: Optional[RecyclerViewAdapter] = None
         """The adapter aka delegate."""
 
-        self._views_pool: List[QtWidgets.QWidget] = []
+        self._unbound_views: List[QtWidgets.QWidget] = []
         """Views that have been created but aren't in use."""
 
         self._bound_views: Dict[Index, QtWidgets.QWidget] = {}
@@ -60,13 +62,12 @@ class RecyclerView(QtWidgets.QScrollArea):
         self.recycler = QtWidgets.QWidget()
         self.recycler.setParent(self)
         self.recycler.move(0, 0)
-        self.recycler.show()
-        self.recycling_vbox = QtWidgets.QVBoxLayout()
+        self.recycling_vbox = QtWidgets.QVBoxLayout(self.recycler)
         self.recycling_vbox.setContentsMargins(0, 0, 0, 0)
         self.recycling_vbox.setSpacing(0)
 
         # for index in range(10):
-        #     self.inner_layout.addWidget(QtWidgets.QLabel(f"Item {index}"))
+        #     self.recycling_vbox.addWidget(QtWidgets.QLabel(f"Item {index}"))
 
     def set_adapter(self, adapter: RecyclerViewAdapter):
         self._adapter = adapter
@@ -84,9 +85,9 @@ class RecyclerView(QtWidgets.QScrollArea):
         for index in range(10):
             view = self._get_fresh_view()
             self._adapter.bind_view(view, index)
-            self.recycling_vbox.addWidget(view)
-            view.show()
             self._bound_views[index] = view
+            self._unbound_views.remove(view)
+            self.recycling_vbox.addWidget(view)
 
     def _ensure_enough_views_exist(self):
         """Ensure that there are enough views to fill the visible area."""
@@ -96,19 +97,19 @@ class RecyclerView(QtWidgets.QScrollArea):
 
         # Even if there are less items than views, create some empty
         # ones since RecyclerView is typically used for large datasets.
-        while len(self._bound_views) + len(self._views_pool) < total_possible_bound_views:
+        while len(self._bound_views) + len(self._unbound_views) < total_possible_bound_views:
             self._create_view()
 
     def _get_fresh_view(self) -> QtWidgets.QWidget:
         """Get an unbound view, or create one if none available."""
-        if not self._views_pool:
+        if not self._unbound_views:
             self._create_view()  # Ensure at least one exists.
-        return self._views_pool[0]
+        return self._unbound_views[0]
 
     def _create_view(self):
         """Create a new view and add it to the pool."""
         view = self._adapter.create_view()
-        self._views_pool.append(view)
+        self._unbound_views.append(view)
         return view
 
     def _get_item_size_hint(self):
@@ -117,6 +118,7 @@ class RecyclerView(QtWidgets.QScrollArea):
     def scrollContentsBy(self, dx, dy):
         # Called when the scroll area is scrolled.
         super().scrollContentsBy(dx, dy)
+        self.recycler.move(0, -self.verticalScrollBar().value())
 
 
 class MyListAdapter(RecyclerViewAdapter):
@@ -125,11 +127,11 @@ class MyListAdapter(RecyclerViewAdapter):
 
     def create_view(self) -> QtWidgets.QWidget:
         label = QtWidgets.QLabel()
-        label.setFixedHeight(50)
+        label.setFixedHeight(100)
         return label
     
     def bind_view(self, view: QtWidgets.QWidget, index: int) -> None:
-        view.setText(f"Item {index}")
+        view.setText(self.data[index])
     
     def get_size(self) -> int:
         return len(self.data)
@@ -143,7 +145,7 @@ class MyList(QtWidgets.QWidget):
         vbox1.setSpacing(0)
 
         recycler_view = RecyclerView()
-        data = [f"Item {i}" for i in range(100)]
+        data = [f"Item {i:04d}" for i in range(100)]
         adapter = MyListAdapter(data)
         recycler_view.set_adapter(adapter)
         vbox1.addWidget(recycler_view)
