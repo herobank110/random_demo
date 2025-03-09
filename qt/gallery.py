@@ -9,12 +9,16 @@ def generate_image(size: QtCore.QSize, number: int):
     painter.setBrush(QtGui.QBrush("#aaaaaa"))
     painter.drawRect(0, 0, size.width(), size.height())
     painter.setPen(QtGui.QPen("#000000"))
-    painter.drawText(QtCore.QRect(QtCore.QPoint(), size), QtCore.Qt.AlignCenter, f"Image {number:04d}")
+    painter.drawText(
+        QtCore.QRect(QtCore.QPoint(), size),
+        QtCore.Qt.AlignCenter,
+        f"Image {number:04d}",
+    )
     return image
 
 
-
 Index = int
+
 
 class RecyclerViewAdapter(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -23,11 +27,11 @@ class RecyclerViewAdapter(metaclass=abc.ABCMeta):
 
         Its size hint will indicate how much space to allocate for the items.
         """
-    
+
     @abc.abstractmethod
     def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
         """Bind a widget, potentially one that is being recycled."""
-    
+
     @abc.abstractmethod
     def get_size(self) -> int:
         """Return the number of items in the dataset."""
@@ -51,7 +55,7 @@ class RecyclerView(QtWidgets.QScrollArea):
 
         self._bound_views: Dict[Index, QtWidgets.QWidget] = {}
         """Views that are currently bound to an item in the dataset."""
-        
+
         # TODO is this needed?
         self.setWidgetResizable(True)
 
@@ -93,11 +97,16 @@ class RecyclerView(QtWidgets.QScrollArea):
         """Ensure that there are enough views to fill the visible area."""
 
         item_height = self._get_item_size_hint().height()
-        total_possible_bound_views = self.height() // item_height + self._NUM_EXCESS_VIEWS
+        total_possible_bound_views = (
+            self.height() // item_height + self._NUM_EXCESS_VIEWS
+        )
 
         # Even if there are less items than views, create some empty
         # ones since RecyclerView is typically used for large datasets.
-        while len(self._bound_views) + len(self._unbound_views) < total_possible_bound_views:
+        while (
+            len(self._bound_views) + len(self._unbound_views)
+            < total_possible_bound_views
+        ):
             self._create_view()
 
     def _get_fresh_view(self) -> QtWidgets.QWidget:
@@ -129,17 +138,18 @@ class MyListAdapter(RecyclerViewAdapter):
         label = QtWidgets.QLabel()
         label.setFixedHeight(100)
         return label
-    
+
     def bind_view(self, view: QtWidgets.QWidget, index: int) -> None:
         view.setText(self.data[index])
-    
+
     def get_size(self) -> int:
         return len(self.data)
+
 
 class MyList(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        
+
         vbox1 = QtWidgets.QVBoxLayout(self)
         vbox1.setContentsMargins(0, 0, 0, 0)
         vbox1.setSpacing(0)
@@ -157,7 +167,6 @@ class Gallery(QtWidgets.QWidget):
 
         NUM_COLS = 3
         NUM_IMAGES = 100
-
 
         vbox1 = QtWidgets.QVBoxLayout(self)
         vbox1.setContentsMargins(0, 0, 0, 0)
@@ -180,15 +189,27 @@ class Gallery(QtWidgets.QWidget):
             label = QtWidgets.QLabel()
             label.setPixmap(QtGui.QPixmap.fromImage(image))
             grid1.addWidget(label, i // NUM_COLS, i % NUM_COLS)
-        
+
         # grid1.addItem(QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding), 2, 2, 3)
 
         # Spacers to fill the available area, so the images don't stretch.
         stretch_row_index = NUM_IMAGES // NUM_COLS + 1
-        grid1.addWidget(QtWidgets.QLabel(styleSheet="background-color:red"), stretch_row_index, 0, 1, NUM_COLS)
+        grid1.addWidget(
+            QtWidgets.QLabel(styleSheet="background-color:red"),
+            stretch_row_index,
+            0,
+            1,
+            NUM_COLS,
+        )
         grid1.setRowStretch(stretch_row_index, 1)
         stretch_col_index = NUM_COLS + 1
-        grid1.addWidget(QtWidgets.QLabel(styleSheet="background-color:red"), 0, stretch_col_index, NUM_COLS, 1)
+        grid1.addWidget(
+            QtWidgets.QLabel(styleSheet="background-color:red"),
+            0,
+            stretch_col_index,
+            NUM_COLS,
+            1,
+        )
         grid1.setColumnStretch(stretch_col_index, 1)
 
 
