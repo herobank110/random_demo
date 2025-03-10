@@ -91,8 +91,12 @@ class RecyclerView(QtWidgets.QScrollArea):
         self._bind_and_show()
 
     def _bind_and_show(self):
+        view_height = self.height()
+        item_height = self._get_item_size_hint().height()
+        view_top = self.verticalScrollBar().value()
+        view_bottom = view_top + view_height  # should it be view_top+min(itemhgt*num_items, view_height)?
         print(
-            f"{self.height():03d} {self.verticalScrollBar().value():03d} {self.verticalScrollBar().value() / self.verticalScrollBar().maximum():3.3f} {self._get_item_size_hint().height():03d}\r",
+            f"{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} \r",
             end="",
         )
         return
