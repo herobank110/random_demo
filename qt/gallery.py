@@ -101,18 +101,22 @@ class RecyclerView(QtWidgets.QScrollArea):
         buffered_view_top = max(view_top - item_height * self._NUM_EXCESS_VIEWS, 0)
         buffered_view_bottom = min(view_bottom + item_height * self._NUM_EXCESS_VIEWS, total_items_height)
         
+        partially_exposed_top = view_top % item_height
+
+
         def item_at(height: int):
             return height // item_height
         
         def view_indexes_needed():
-            return list(map(item_at, range(buffered_view_top, buffered_view_bottom, item_height)))
+            return list(map(item_at, range(buffered_view_top, buffered_view_bottom + partially_exposed_top, item_height)))
+
+        needed_indexes = view_indexes_needed()
 
         print(
-            f"{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} {view_indexes_needed()}                                       \r",
+            f"{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} {needed_indexes} {buffered_view_top:03d} {buffered_view_bottom:03d}                                   \r",
             end="",
         )
 
-        needed_indexes = view_indexes_needed()
         # recycle old views
         for index in list(self._bound_views.keys()):
             if index not in needed_indexes:
@@ -132,7 +136,7 @@ class RecyclerView(QtWidgets.QScrollArea):
             view = self._bound_views[index]
             self.recycling_vbox.addWidget(view)
             view.show()
-        self.recycler.move(0, buffered_view_top)
+        self.recycler.move(0, -partially_exposed_top)
         # print(f"{self.recycler.size()}                                                             \r", end="")
 
         
@@ -190,7 +194,7 @@ class RecyclerView(QtWidgets.QScrollArea):
         # Called when the scroll area is scrolled.
         super().scrollContentsBy(dx, dy)
         self._bind_and_show()
-        self.recycler.move(0, -self.verticalScrollBar().value())
+        # self.recycler.move(0, -self.verticalScrollBar().value())
 
 
 class MyListAdapter(RecyclerViewAdapter):
