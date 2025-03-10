@@ -1,4 +1,5 @@
 import abc
+import functools
 from typing import Dict, List, Optional
 from PySide6 import QtCore, QtWidgets, QtGui
 
@@ -64,14 +65,15 @@ class RecyclerView(QtWidgets.QScrollArea):
         # TODO list only for now, later grid too
         self.recycler = QtWidgets.QWidget()
         self.recycler.setParent(self)
+        e = self.recycler.event
+        self.recycler.event = lambda event: (event.ignore() or print("even") or (QtCore.QCoreApplication.instance().postEvent(self, event) or None) or False) if event.type() == QtCore.QEvent.Wheel else e(event)
+        # self.recycler.installEventFilter(self._ignore_scroll_event_filter())
+        self.recycler.setMouseTracking(False)
         self.recycler.move(0, 0)
         self.recycling_vbox = QtWidgets.QVBoxLayout(self.recycler)
         self.recycling_vbox.setSizeConstraint(QtWidgets.QLayout.SetMinAndMaxSize)
         self.recycling_vbox.setContentsMargins(0, 0, 0, 0)
         self.recycling_vbox.setSpacing(0)
-
-        # for index in range(10):
-        #     self.recycling_vbox.addWidget(QtWidgets.QLabel(f"Item {index}"))
 
     def set_adapter(self, adapter: RecyclerViewAdapter):
         self._adapter = adapter
@@ -144,12 +146,12 @@ class RecyclerView(QtWidgets.QScrollArea):
         # print(f"{self.recycler.size()}                                                             \r", end="")
 
         total_created_views = len(self._bound_views) + len(self._unbound_views)
-        print(
-            # f"viewhei{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} {buffered_view_top:03d} {buffered_view_bottom:03d} {vbox_top:03d} {needed_indexes} {total_created_views:03d}         \r",
-            # f"viewheight{view_height:04d} view_top{view_top:04d} view_bottom{view_bottom:04d} item_height{item_height:04d} buffered_view_top{buffered_view_top:04d} buffered_view_bottom{buffered_view_bottom:04d} vbox_top{vbox_top:+04d} needed_indexes{needed_indexes} total_created_views{total_created_views:03d}         \r",
-            f"viewheight{view_height:04d} view_top{view_top:04d} buffered_view_top{buffered_view_top:04d} vbox_top{vbox_top:+04d} needed_indexes{needed_indexes} total_created_views{total_created_views:03d}        \r",
-            end="",
-        )
+        # print(
+        #     # f"viewhei{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} {buffered_view_top:03d} {buffered_view_bottom:03d} {vbox_top:03d} {needed_indexes} {total_created_views:03d}         \r",
+        #     # f"viewheight{view_height:04d} view_top{view_top:04d} view_bottom{view_bottom:04d} item_height{item_height:04d} buffered_view_top{buffered_view_top:04d} buffered_view_bottom{buffered_view_bottom:04d} vbox_top{vbox_top:+04d} needed_indexes{needed_indexes} total_created_views{total_created_views:03d}         \r",
+        #     f"viewheight{view_height:04d} view_top{view_top:04d} buffered_view_top{buffered_view_top:04d} vbox_top{vbox_top:+04d} needed_indexes{needed_indexes} total_created_views{total_created_views:03d}        \r",
+        #     end="",
+        # )
 
         return
         for index in range(len(self._adapter.data)):
@@ -189,12 +191,29 @@ class RecyclerView(QtWidgets.QScrollArea):
     def _create_view(self):
         """Create a new view and add it to the pool."""
         view = self._adapter.create_view()
-
-        view.setParent(self.recycler)  # prevent GC?
+        view.setParent(self.recycler)
         view.hide()  # is this needed?
+
+        # view.setMouseTracking(False)
+        # view.installEventFilter(self._ignore_scroll_event_filter())
 
         self._unbound_views.append(view)
         return view
+
+    @functools.lru_cache(maxsize=1)
+    def _ignore_scroll_event_filter(self):
+        class IgnoreScrollEventFilter(QtCore.QObject):
+            def eventFilter(self, obj, event):
+                # print(f"eventtype {type(event)}                    \r", end="")
+                if event.type() == QtCore.QEvent.Wheel:
+                    # event.accept()
+                    event.ignore()
+                    # event.ignore()
+                    return False
+                return False
+        obj = IgnoreScrollEventFilter()
+        obj.setParent(self)
+        return obj
 
     def _get_item_size_hint(self):
         return self._get_fresh_view().sizeHint()
@@ -215,6 +234,8 @@ class MyListAdapter(RecyclerViewAdapter):
         label = QtWidgets.QLabel()
         label.setFixedHeight(120)
         label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+        e = label.event
+        label.event = lambda event: (event.ignore() or False) if event.type() == QtCore.QEvent.Wheel else e(event)
         return label
 
     def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
