@@ -41,7 +41,7 @@ class RecyclerViewAdapter(metaclass=abc.ABCMeta):
 class RecyclerView(QtWidgets.QScrollArea):
     """A scrollable container used to efficiently show a large number of items."""
 
-    _NUM_EXCESS_VIEWS = 0
+    _NUM_EXCESS_VIEWS = 1
     """The number of views outside of the visible area to prepare for quick scrolling."""
 
     def __init__(self):
@@ -98,7 +98,11 @@ class RecyclerView(QtWidgets.QScrollArea):
         view_bottom = view_top + view_height  # should it be view_top+min(itemhgt*num_items, view_height)?
         total_items = self._adapter.get_num_items()
         total_items_height = total_items * item_height
-        buffered_view_top = max(view_top - item_height * self._NUM_EXCESS_VIEWS, 0)
+
+        buffered_view_top = view_top - item_height * self._NUM_EXCESS_VIEWS
+        if view_top < item_height * self._NUM_EXCESS_VIEWS:
+            buffered_view_top = view_top
+
         buffered_view_bottom = min(view_bottom + item_height * self._NUM_EXCESS_VIEWS, total_items_height)
         
         partially_exposed_top = view_top % item_height
@@ -111,11 +115,6 @@ class RecyclerView(QtWidgets.QScrollArea):
             return list(map(item_at, range(buffered_view_top, buffered_view_bottom + partially_exposed_top, item_height)))
 
         needed_indexes = view_indexes_needed()
-
-        print(
-            f"{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} {needed_indexes} {buffered_view_top:03d} {buffered_view_bottom:03d}                                   \r",
-            end="",
-        )
 
         # recycle old views
         for index in list(self._bound_views.keys()):
@@ -136,10 +135,20 @@ class RecyclerView(QtWidgets.QScrollArea):
             view = self._bound_views[index]
             self.recycling_vbox.addWidget(view)
             view.show()
-        self.recycler.move(0, -partially_exposed_top)
+        # vbox_top = -partially_exposed_top - (buffered_view_top % item_height)
+        # vbox_top = -partially_exposed_top - (item_height * self._NUM_EXCESS_VIEWS)
+        vbox_top = buffered_view_top - view_top - partially_exposed_top
+        # vbox_top = buffered_view_top - view_top - partially_exposed_top
+
+        self.recycler.move(0, vbox_top)
         # print(f"{self.recycler.size()}                                                             \r", end="")
 
         
+        total_created_views = len(self._bound_views) + len(self._unbound_views)
+        print(
+            f"{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} {buffered_view_top:03d} {buffered_view_bottom:03d} {vbox_top:03d} {needed_indexes} {total_created_views:03d}         \r",
+            end="",
+        )
 
         return
         for index in range(len(self._adapter.data)):
@@ -208,7 +217,10 @@ class MyListAdapter(RecyclerViewAdapter):
         return label
 
     def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
-        view.setText(self.data[index])
+        try:
+            view.setText(self.data[index])
+        except IndexError:
+            print("IndexErrors\r", end="")
         view.setStyleSheet(f"background-color: {'#888888' if index % 2 == 0 else '#666666'}")
 
     def get_num_items(self) -> int:
@@ -225,7 +237,7 @@ class MyList(QtWidgets.QWidget):
 
         recycler_view = RecyclerView()
         # data = [f"Item {i + 1:04d}" for i in range(5)]
-        data = [f"{i}" for i in range(5)]
+        data = [f"{i}" for i in range(10)]
         adapter = MyListAdapter(data)
         recycler_view.set_adapter(adapter)
         vbox1.addWidget(recycler_view)
