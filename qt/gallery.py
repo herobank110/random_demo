@@ -209,16 +209,19 @@ class RecyclerView(QtWidgets.QScrollArea):
 class MyListAdapter(RecyclerViewAdapter):
     def __init__(self, data):
         self.data = data
+        self.images = [QtGui.QPixmap.fromImage(generate_image(QtCore.QSize(240, 120), i)) for i in range(1000)]
 
     def create_view(self) -> QtWidgets.QWidget:
         label = QtWidgets.QLabel()
-        label.setFixedHeight(100)
+        label.setFixedHeight(120)
         label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
         return label
 
     def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
-        view.setText(self.data[index])
-        view.setStyleSheet(f"background-color: {'#888888' if index % 2 == 0 else '#666666'}")
+        label: QtWidgets.QLabel = view
+        label.setPixmap(self.images[index % len(self.images)])
+        # view.setText(self.data[index])
+        # view.setStyleSheet(f"background-color: {'#888888' if index % 2 == 0 else '#666666'}")
 
     def get_num_items(self) -> int:
         return len(self.data)
