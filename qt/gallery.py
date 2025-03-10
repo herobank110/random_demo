@@ -99,13 +99,11 @@ class RecyclerView(QtWidgets.QScrollArea):
         total_items = self._adapter.get_num_items()
         total_items_height = total_items * item_height
 
-        buffered_view_top = view_top - item_height * self._NUM_EXCESS_VIEWS
-        if view_top < item_height * self._NUM_EXCESS_VIEWS:
-            buffered_view_top = view_top
-
-        buffered_view_bottom = min(view_bottom + item_height * self._NUM_EXCESS_VIEWS, total_items_height)
-        
         partially_exposed_top = view_top % item_height
+        # buffered_view_top = view_top - item_height * self._NUM_EXCESS_VIEWS if view_top >= item_height * self._NUM_EXCESS_VIEWS else view_top
+        buffered_view_top = view_top - (item_height * self._NUM_EXCESS_VIEWS if view_top >= item_height * self._NUM_EXCESS_VIEWS else 0)
+        buffered_view_bottom = min(view_bottom + item_height * self._NUM_EXCESS_VIEWS, total_items_height)
+        vbox_top = buffered_view_top - view_top - partially_exposed_top
 
 
         def item_at(height: int):
@@ -137,7 +135,6 @@ class RecyclerView(QtWidgets.QScrollArea):
             view.show()
         # vbox_top = -partially_exposed_top - (buffered_view_top % item_height)
         # vbox_top = -partially_exposed_top - (item_height * self._NUM_EXCESS_VIEWS)
-        vbox_top = buffered_view_top - view_top - partially_exposed_top
         # vbox_top = buffered_view_top - view_top - partially_exposed_top
 
         self.recycler.move(0, vbox_top)
@@ -146,7 +143,8 @@ class RecyclerView(QtWidgets.QScrollArea):
         
         total_created_views = len(self._bound_views) + len(self._unbound_views)
         print(
-            f"{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} {buffered_view_top:03d} {buffered_view_bottom:03d} {vbox_top:03d} {needed_indexes} {total_created_views:03d}         \r",
+            # f"viewhei{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} {buffered_view_top:03d} {buffered_view_bottom:03d} {vbox_top:03d} {needed_indexes} {total_created_views:03d}         \r",
+            f"viewheight{view_height:04d} view_top{view_top:04d} view_bottom{view_bottom:04d} item_height{item_height:04d} buffered_view_top{buffered_view_top:04d} buffered_view_bottom{buffered_view_bottom:04d} vbox_top{vbox_top:+04d} needed_indexes{needed_indexes} total_created_views{total_created_views:03d}         \r",
             end="",
         )
 
@@ -176,7 +174,6 @@ class RecyclerView(QtWidgets.QScrollArea):
     def _get_fresh_view(self) -> QtWidgets.QWidget:
         """Get an unbound view, or create one if none available."""
         if not self._unbound_views:
-            print("created")
             self._create_view()  # Ensure at least one exists.
         return self._unbound_views[0]
 
@@ -217,10 +214,7 @@ class MyListAdapter(RecyclerViewAdapter):
         return label
 
     def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
-        try:
-            view.setText(self.data[index])
-        except IndexError:
-            print("IndexErrors\r", end="")
+        view.setText(self.data[index])
         view.setStyleSheet(f"background-color: {'#888888' if index % 2 == 0 else '#666666'}")
 
     def get_num_items(self) -> int:
