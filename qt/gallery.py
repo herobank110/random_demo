@@ -41,7 +41,7 @@ class RecyclerViewAdapter(metaclass=abc.ABCMeta):
 class RecyclerView(QtWidgets.QScrollArea):
     """A scrollable container used to efficiently show a large number of items."""
 
-    _NUM_EXCESS_VIEWS = 2
+    _NUM_EXCESS_VIEWS = 1
     """The number of views outside of the visible area to prepare for quick scrolling."""
 
     def __init__(self):
@@ -95,8 +95,19 @@ class RecyclerView(QtWidgets.QScrollArea):
         item_height = self._get_item_size_hint().height()
         view_top = self.verticalScrollBar().value()
         view_bottom = view_top + view_height  # should it be view_top+min(itemhgt*num_items, view_height)?
+        total_items = self._adapter.get_num_items()
+        total_items_height = total_items * item_height
+        
+        def item_at(height: int):
+            return height // item_height
+        
+        def bound_view_indexes_needed():
+            buffered_view_top = max(view_top - item_height * self._NUM_EXCESS_VIEWS, 0)
+            buffered_view_bottom = min(view_bottom + item_height * self._NUM_EXCESS_VIEWS, total_items_height)
+            return list(map(item_at, range(buffered_view_top, buffered_view_bottom, item_height)))
+
         print(
-            f"{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} \r",
+            f"{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} {bound_view_indexes_needed()}                                       \r",
             end="",
         )
         return
@@ -176,7 +187,7 @@ class MyList(QtWidgets.QWidget):
         vbox1.setSpacing(0)
 
         recycler_view = RecyclerView()
-        data = [f"Item {i + 1:04d}" for i in range(5)]
+        data = [f"Item {i + 1:04d}" for i in range(10)]
         adapter = MyListAdapter(data)
         recycler_view.set_adapter(adapter)
         vbox1.addWidget(recycler_view)
