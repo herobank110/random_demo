@@ -41,7 +41,7 @@ class RecyclerViewAdapter(metaclass=abc.ABCMeta):
 class RecyclerView(QtWidgets.QScrollArea):
     """A scrollable container used to efficiently show a large number of items."""
 
-    _NUM_EXCESS_VIEWS = 1
+    _NUM_EXCESS_VIEWS = 0
     """The number of views outside of the visible area to prepare for quick scrolling."""
 
     def __init__(self):
@@ -66,6 +66,7 @@ class RecyclerView(QtWidgets.QScrollArea):
         self.recycler.setParent(self)
         self.recycler.move(0, 0)
         self.recycling_vbox = QtWidgets.QVBoxLayout(self.recycler)
+        self.recycling_vbox.setSizeConstraint(QtWidgets.QLayout.SetMinAndMaxSize)
         self.recycling_vbox.setContentsMargins(0, 0, 0, 0)
         self.recycling_vbox.setSpacing(0)
 
@@ -97,19 +98,45 @@ class RecyclerView(QtWidgets.QScrollArea):
         view_bottom = view_top + view_height  # should it be view_top+min(itemhgt*num_items, view_height)?
         total_items = self._adapter.get_num_items()
         total_items_height = total_items * item_height
+        buffered_view_top = max(view_top - item_height * self._NUM_EXCESS_VIEWS, 0)
+        buffered_view_bottom = min(view_bottom + item_height * self._NUM_EXCESS_VIEWS, total_items_height)
         
         def item_at(height: int):
             return height // item_height
         
-        def bound_view_indexes_needed():
-            buffered_view_top = max(view_top - item_height * self._NUM_EXCESS_VIEWS, 0)
-            buffered_view_bottom = min(view_bottom + item_height * self._NUM_EXCESS_VIEWS, total_items_height)
+        def view_indexes_needed():
             return list(map(item_at, range(buffered_view_top, buffered_view_bottom, item_height)))
 
         print(
-            f"{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} {bound_view_indexes_needed()}                                       \r",
+            f"{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} {view_indexes_needed()}                                       \r",
             end="",
         )
+
+        needed_indexes = view_indexes_needed()
+        # recycle old views
+        for index in list(self._bound_views.keys()):
+            if index not in needed_indexes:
+                view = self._bound_views.pop(index)
+                self._unbound_views.append(view)
+        # bind new views
+        for index in needed_indexes:
+            if index not in self._bound_views:
+                view = self._take_fresh_view()
+                self._adapter.bind_view(view, index)
+                self._bound_views[index] = view
+        # layout items
+        for view in self._unbound_views + list(self._bound_views.values()):
+            self.recycling_vbox.removeWidget(view)
+            view.hide()
+        for index in needed_indexes:
+            view = self._bound_views[index]
+            self.recycling_vbox.addWidget(view)
+            view.show()
+        self.recycler.move(0, buffered_view_top)
+        # print(f"{self.recycler.size()}                                                             \r", end="")
+
+        
+
         return
         for index in range(len(self._adapter.data)):
             view = self._get_fresh_view()
@@ -139,6 +166,12 @@ class RecyclerView(QtWidgets.QScrollArea):
             print("created")
             self._create_view()  # Ensure at least one exists.
         return self._unbound_views[0]
+
+    def _take_fresh_view(self) -> QtWidgets.QWidget:
+        """Get a fresh view to be bound immediately (not added to pool)."""
+        view = self._get_fresh_view()  # This ensures it's in the pool.
+        self._unbound_views.remove(view)  # Now remove it.
+        return view
 
     def _create_view(self):
         """Create a new view and add it to the pool."""
@@ -187,7 +220,8 @@ class MyList(QtWidgets.QWidget):
         vbox1.setSpacing(0)
 
         recycler_view = RecyclerView()
-        data = [f"Item {i + 1:04d}" for i in range(10)]
+        # data = [f"Item {i + 1:04d}" for i in range(5)]
+        data = [f"{i}" for i in range(5)]
         adapter = MyListAdapter(data)
         recycler_view.set_adapter(adapter)
         vbox1.addWidget(recycler_view)
