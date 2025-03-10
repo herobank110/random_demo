@@ -42,7 +42,7 @@ class RecyclerViewAdapter(metaclass=abc.ABCMeta):
 class RecyclerView(QtWidgets.QScrollArea):
     """A scrollable container used to efficiently show a large number of items."""
 
-    _NUM_EXCESS_VIEWS = 4
+    _NUM_EXCESS_VIEWS = 3
     """The number of views outside of the visible area to prepare for quick scrolling."""
 
     def __init__(self):
@@ -64,9 +64,9 @@ class RecyclerView(QtWidgets.QScrollArea):
 
         # TODO list only for now, later grid too
         self.recycler = QtWidgets.QWidget()
-        self.recycler.setParent(self)
-        e = self.recycler.event
-        self.recycler.event = lambda event: (event.ignore() or print("even") or (QtCore.QCoreApplication.instance().postEvent(self, event) or None) or False) if event.type() == QtCore.QEvent.Wheel else e(event)
+        self.recycler.setParent(inner)
+        # e = self.recycler.event
+        # self.recycler.event = lambda event: (event.ignore() or print("even") or (QtCore.QCoreApplication.instance().postEvent(self, event) or None) or False) if event.type() == QtCore.QEvent.Wheel else e(event)
         # self.recycler.installEventFilter(self._ignore_scroll_event_filter())
         self.recycler.setMouseTracking(False)
         self.recycler.move(0, 0)
@@ -142,16 +142,19 @@ class RecyclerView(QtWidgets.QScrollArea):
         # vbox_top = -partially_exposed_top - (item_height * self._NUM_EXCESS_VIEWS)
         # vbox_top = buffered_view_top - view_top - partially_exposed_top
 
-        self.recycler.move(0, vbox_top)
+        # self.recycler.move(0, vbox_top)
+        # self.recycler.move(0, vbox_top * 0.5)
+        # self.recycler.move(0, view_top - vbox_top)
+        self.recycler.move(0, buffered_view_top)
         # print(f"{self.recycler.size()}                                                             \r", end="")
 
         total_created_views = len(self._bound_views) + len(self._unbound_views)
-        # print(
-        #     # f"viewhei{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} {buffered_view_top:03d} {buffered_view_bottom:03d} {vbox_top:03d} {needed_indexes} {total_created_views:03d}         \r",
-        #     # f"viewheight{view_height:04d} view_top{view_top:04d} view_bottom{view_bottom:04d} item_height{item_height:04d} buffered_view_top{buffered_view_top:04d} buffered_view_bottom{buffered_view_bottom:04d} vbox_top{vbox_top:+04d} needed_indexes{needed_indexes} total_created_views{total_created_views:03d}         \r",
-        #     f"viewheight{view_height:04d} view_top{view_top:04d} buffered_view_top{buffered_view_top:04d} vbox_top{vbox_top:+04d} needed_indexes{needed_indexes} total_created_views{total_created_views:03d}        \r",
-        #     end="",
-        # )
+        print(
+            # f"viewhei{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} {buffered_view_top:03d} {buffered_view_bottom:03d} {vbox_top:03d} {needed_indexes} {total_created_views:03d}         \r",
+            # f"viewheight{view_height:04d} view_top{view_top:04d} view_bottom{view_bottom:04d} item_height{item_height:04d} buffered_view_top{buffered_view_top:04d} buffered_view_bottom{buffered_view_bottom:04d} vbox_top{vbox_top:+04d} needed_indexes{needed_indexes} total_created_views{total_created_views:03d}         \r",
+            f"viewheight{view_height:04d} view_top{view_top:04d} buffered_view_top{buffered_view_top:04d} vbox_top{vbox_top:+04d} needed_indexes{needed_indexes} total_created_views{total_created_views:03d}        \r",
+            end="",
+        )
 
         return
         for index in range(len(self._adapter.data)):
@@ -258,7 +261,7 @@ class MyList(QtWidgets.QWidget):
 
         recycler_view = RecyclerView()
         # data = [f"Item {i + 1:04d}" for i in range(5)]
-        data = [f"{i}" for i in range(20_000)]
+        data = [f"{i}" for i in range(70)]
         adapter = MyListAdapter(data)
         recycler_view.set_adapter(adapter)
         vbox1.addWidget(recycler_view)
