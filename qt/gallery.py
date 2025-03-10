@@ -1,3 +1,4 @@
+import random
 import abc
 import functools
 from typing import Dict, List, Optional
@@ -7,7 +8,10 @@ from PySide6 import QtCore, QtWidgets, QtGui
 def generate_image(size: QtCore.QSize, number: int):
     image = QtGui.QImage(size, QtGui.QImage.Format_RGB32)
     painter = QtGui.QPainter(image)
-    painter.setBrush(QtGui.QBrush("#aaaaaa"))
+    gradient = QtGui.QLinearGradient(0, 0, size.width(), size.height())
+    gradient.setColorAt(0, QtGui.QColor(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
+    gradient.setColorAt(1, QtGui.QColor(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
+    painter.setBrush(QtGui.QBrush(gradient))
     painter.drawRect(0, 0, size.width(), size.height())
     painter.setPen(QtGui.QPen("#000000"))
     painter.drawText(
