@@ -95,45 +95,25 @@ class RecyclerView(QtWidgets.QScrollArea):
         view_height = self.height()
         item_height = self._get_item_size_hint().height()
         view_top = self.verticalScrollBar().value()
-        view_bottom = view_top + view_height  # should it be view_top+min(itemhgt*num_items, view_height)?
-        total_items = self._adapter.get_num_items()
-        total_items_height = total_items * item_height
-
+        view_bottom = view_top + view_height
+        total_num_items = self._adapter.get_num_items()
+        total_items_height = total_num_items * item_height
         partially_exposed_top = view_top % item_height
-        # buffered_view_top = view_top - item_height * self._NUM_EXCESS_VIEWS if view_top >= item_height * self._NUM_EXCESS_VIEWS else view_top
-        # buffered_view_top = view_top - (item_height * self._NUM_EXCESS_VIEWS if view_top >= item_height * self._NUM_EXCESS_VIEWS else 0)
-
-        # buffered_view_top = view_top
-        buffered_view_top = view_top - partially_exposed_top
-        
-
-        # for i in range(self._NUM_EXCESS_VIEWS):
-        #     if buffered_view_top < item_height:
-        #         i -= 1
-        #         break
-        #     buffered_view_top -= item_height
-        # i += 1
-
-        # alternative non loop version
-        i = min(self._NUM_EXCESS_VIEWS, view_top // item_height)
-        buffered_view_top -= i * item_height
-
-
-
-        # buffered_view_top = max(buffered_view_top, buffered_view_top - item_height * self._NUM_EXCESS_VIEWS)
-        # buffered_view_top -= max(0, item_height * self._NUM_EXCESS_VIEWS)
-        # buffered_view_top -= partially_exposed_top
-
-        buffered_view_bottom = min(view_bottom + item_height * self._NUM_EXCESS_VIEWS, total_items_height)
-        # vbox_top = buffered_view_top - view_top - partially_exposed_top
+        buffered_view_top = (
+            view_top
+            - partially_exposed_top
+            - min(self._NUM_EXCESS_VIEWS, view_top // item_height) * item_height
+        )
+        buffered_view_bottom = min(
+            total_items_height, view_bottom + item_height * self._NUM_EXCESS_VIEWS
+        )
         vbox_top = buffered_view_top - view_top
-
 
         def item_at(height: int):
             return height // item_height
-        
+
         def view_indexes_needed():
-            return list(map(item_at, range(buffered_view_top, buffered_view_bottom , item_height)))
+            return list(map(item_at, range(buffered_view_top, buffered_view_bottom, item_height)))
 
         needed_indexes = view_indexes_needed()
 
@@ -163,12 +143,11 @@ class RecyclerView(QtWidgets.QScrollArea):
         self.recycler.move(0, vbox_top)
         # print(f"{self.recycler.size()}                                                             \r", end="")
 
-        
         total_created_views = len(self._bound_views) + len(self._unbound_views)
         print(
             # f"viewhei{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} {buffered_view_top:03d} {buffered_view_bottom:03d} {vbox_top:03d} {needed_indexes} {total_created_views:03d}         \r",
             # f"viewheight{view_height:04d} view_top{view_top:04d} view_bottom{view_bottom:04d} item_height{item_height:04d} buffered_view_top{buffered_view_top:04d} buffered_view_bottom{buffered_view_bottom:04d} vbox_top{vbox_top:+04d} needed_indexes{needed_indexes} total_created_views{total_created_views:03d}         \r",
-            f"viewheight{view_height:04d} view_top{view_top:04d} buffered_view_top{buffered_view_top:04d} vbox_top{vbox_top:+04d} needed_indexes{needed_indexes} total_created_views{total_created_views:03d}   i{i}      \r",
+            f"viewheight{view_height:04d} view_top{view_top:04d} buffered_view_top{buffered_view_top:04d} vbox_top{vbox_top:+04d} needed_indexes{needed_indexes} total_created_views{total_created_views:03d}        \r",
             end="",
         )
 
