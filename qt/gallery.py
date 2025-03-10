@@ -234,7 +234,7 @@ class MyList(QtWidgets.QWidget):
 
         recycler_view = RecyclerView()
         # data = [f"Item {i + 1:04d}" for i in range(5)]
-        data = [f"{i}" for i in range(20)]
+        data = [f"{i}" for i in range(20_000)]
         adapter = MyListAdapter(data)
         recycler_view.set_adapter(adapter)
         vbox1.addWidget(recycler_view)
