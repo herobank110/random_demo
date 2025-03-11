@@ -1,3 +1,5 @@
+import itertools
+import math
 import random
 import abc
 import functools
@@ -9,8 +11,12 @@ def generate_image(size: QtCore.QSize, number: int):
     image = QtGui.QImage(size, QtGui.QImage.Format_RGB32)
     painter = QtGui.QPainter(image)
     gradient = QtGui.QLinearGradient(0, 0, size.width(), size.height())
-    gradient.setColorAt(0, QtGui.QColor(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
-    gradient.setColorAt(1, QtGui.QColor(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
+    gradient.setColorAt(
+        0, QtGui.QColor(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+    )
+    gradient.setColorAt(
+        1, QtGui.QColor(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+    )
     painter.setBrush(QtGui.QBrush(gradient))
     painter.drawRect(0, 0, size.width(), size.height())
     painter.setPen(QtGui.QPen("#000000"))
@@ -110,12 +116,23 @@ class RecyclerView(QtWidgets.QScrollArea):
         self._bind_and_show()
 
     def _bind_and_show(self):
+        if self._adapter is None or self.recycler.layout() is None:
+            # not fully initialized yet
+            return
+
         view_height = self.height()
         item_height = self._get_item_size_hint().height()
         view_top = self.verticalScrollBar().value()
         view_bottom = view_top + view_height
+
+        layout = self.recycler.layout()
+        is_grid_layout = isinstance(layout, QtWidgets.QGridLayout)
+        is_vbox_layout = isinstance(layout, QtWidgets.QVBoxLayout)
+        num_cols = self.width() // self._get_item_size_hint().width() if is_grid_layout else 1
+        assert is_grid_layout or is_vbox_layout
+
         total_num_items = self._adapter.get_num_items()
-        total_items_height = total_num_items * item_height
+        total_items_height = math.ceil(total_num_items / num_cols) * item_height
         partially_exposed_top = view_top % item_height
         buffered_view_top = (
             view_top
@@ -127,10 +144,15 @@ class RecyclerView(QtWidgets.QScrollArea):
         )
 
         def item_at(height: int):
-            return height // item_height
+            row_start_index = (height // item_height) * num_cols
+            return [row_start_index + i for i in range(num_cols)]
 
         def view_indexes_needed():
-            return list(map(item_at, range(buffered_view_top, buffered_view_bottom, item_height)))
+            return list(
+                itertools.chain.from_iterable(
+                    map(item_at, range(buffered_view_top, buffered_view_bottom, item_height))
+                )
+            )
 
         needed_indexes = view_indexes_needed()
 
@@ -151,7 +173,12 @@ class RecyclerView(QtWidgets.QScrollArea):
             view.hide()
         for index in needed_indexes:
             view = self._bound_views[index]
-            self.recycler.layout().addWidget(view)
+            if is_grid_layout:
+                row = index // num_cols
+                col = index % num_cols
+                self.recycler.layout().addWidget(view, row, col)
+            else:
+                self.recycler.layout().addWidget(view)
             view.show()
         self.recycler.move(0, buffered_view_top)
 
@@ -231,7 +258,7 @@ class MyList(QtWidgets.QWidget):
         data = [f"{i}" for i in range(20_000)]
         adapter = MyListAdapter(data)
         recycler_view.set_adapter(adapter)
-        recycler_view.set_recycler_layout(QtWidgets.QVBoxLayout())
+        recycler_view.set_recycler_layout(QtWidgets.QGridLayout())
         vbox1.addWidget(recycler_view)
 
 
