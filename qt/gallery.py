@@ -91,7 +91,8 @@ class RecyclerView(QtWidgets.QScrollArea):
         total_height = item_height * self._adapter.get_num_items()
         self.widget().setFixedHeight(total_height)
 
-    def set_layout(self, layout: RecyclerLayout):
+    def set_recycler_layout(self, layout: RecyclerLayout):
+        """Set which layout to use for recycled views."""
         layout.setSizeConstraint(QtWidgets.QLayout.SetMinAndMaxSize)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -230,7 +231,7 @@ class MyList(QtWidgets.QWidget):
         data = [f"{i}" for i in range(20_000)]
         adapter = MyListAdapter(data)
         recycler_view.set_adapter(adapter)
-        recycler_view.set_layout(QtWidgets.QVBoxLayout())
+        recycler_view.set_recycler_layout(QtWidgets.QVBoxLayout())
         vbox1.addWidget(recycler_view)
 
 
