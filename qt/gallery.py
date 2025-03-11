@@ -219,6 +219,9 @@ class MyListAdapter(RecyclerViewAdapter):
     def _load_image(self, index: int):
         image = QtGui.QPixmap.fromImage(generate_image(QtCore.QSize(240, 120), index))
         self.images[index] = image
+
+    def _load_image_and_apply(self, index: int):
+        self._load_image(index)
         view = self.get_bound_view(index)
         if view:
             # item may have been scrolled out of view already
@@ -232,6 +235,9 @@ class MyListAdapter(RecyclerViewAdapter):
 
     def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
         label: QtWidgets.QLabel = view
+
+        self._load_image(index)  # ensure always loaded
+
         if index in self.images:
             # show already loaded image
             label.setPixmap(self.images[index])
