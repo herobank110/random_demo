@@ -4,6 +4,7 @@ import random
 import abc
 import functools
 from typing import Dict, List, Optional, Union
+from collections import OrderedDict
 from PySide6 import QtCore, QtWidgets, QtGui
 
 
@@ -129,7 +130,7 @@ class RecyclerView(QtWidgets.QScrollArea):
 
     @property
     def _num_cols(self):
-        return self.width() // self._get_item_size_hint().width() if self._is_grid else 1
+        return max(1, self.width() // self._get_item_size_hint().width()) if self._is_grid else 1
 
     @property
     def _total_items_height(self):
@@ -211,6 +212,8 @@ class RecyclerView(QtWidgets.QScrollArea):
             view.show()
         self.recycler.move(0, self._buffered_view_top)
 
+        total_created_views = len(self._unbound_views) + len(self._bound_views)
+
     def _get_fresh_view(self) -> QtWidgets.QWidget:
         """Get an unbound view, or create one if none available."""
         if not self._unbound_views:
@@ -243,11 +246,15 @@ class RecyclerView(QtWidgets.QScrollArea):
 class MyListAdapter(RecyclerViewAdapter):
     def __init__(self, data):
         self.data = data
-        self.images = {}
+        self.images = OrderedDict()
+        self._image_size = QtCore.QSize(480, 240)
 
     def _load_image(self, index: int):
-        image = QtGui.QPixmap.fromImage(generate_image(QtCore.QSize(240, 120), index))
+        image = QtGui.QPixmap.fromImage(generate_image(self._image_size, index))
         self.images[index] = image
+        if len(self.images) > 500:
+            # remove oldest image to simulate memory limit
+            self.images.popitem(last=False)
 
     def _load_image_and_apply(self, index: int):
         self._load_image(index)
@@ -258,14 +265,14 @@ class MyListAdapter(RecyclerViewAdapter):
 
     def create_view(self) -> QtWidgets.QWidget:
         label = QtWidgets.QLabel()
-        label.setFixedSize(QtCore.QSize(240, 120))
+        label.setFixedSize(self._image_size)
         label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
         return label
 
     def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
         label: QtWidgets.QLabel = view
 
-        self._load_image(index)  # ensure always loaded
+        # self._load_image(index)  # ensure always loaded
 
         if index in self.images:
             # show already loaded image
@@ -275,7 +282,7 @@ class MyListAdapter(RecyclerViewAdapter):
             # load image (simulate loading delay)
             label.setPixmap(QtGui.QPixmap())
             label.setText("Loading...")
-            QtCore.QTimer.singleShot(500, functools.partial(self._load_image, index))
+            QtCore.QTimer.singleShot(500, functools.partial(self._load_image_and_apply, index))
 
     def get_num_items(self) -> int:
         return len(self.data)
