@@ -1,7 +1,7 @@
 import random
 import abc
 import functools
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from PySide6 import QtCore, QtWidgets, QtGui
 
 
@@ -50,6 +50,10 @@ class RecyclerViewAdapter(metaclass=abc.ABCMeta):
         return self._recycler.get_bound_view(index) if self._recycler else None
 
 
+RecyclerLayout = Union[QtWidgets.QVBoxLayout, QtWidgets.QGridLayout]
+"""A layout that can be used with RecyclerView."""
+
+
 class RecyclerView(QtWidgets.QScrollArea):
     """A scrollable container used to efficiently show a large number of items."""
 
@@ -77,10 +81,6 @@ class RecyclerView(QtWidgets.QScrollArea):
         self.recycler = QtWidgets.QWidget()
         self.recycler.setParent(inner)
         self.recycler.move(0, 0)
-        self.recycling_vbox = QtWidgets.QVBoxLayout(self.recycler)
-        self.recycling_vbox.setSizeConstraint(QtWidgets.QLayout.SetMinAndMaxSize)
-        self.recycling_vbox.setContentsMargins(0, 0, 0, 0)
-        self.recycling_vbox.setSpacing(0)
 
     def set_adapter(self, adapter: RecyclerViewAdapter):
         self._adapter = adapter
@@ -90,6 +90,12 @@ class RecyclerView(QtWidgets.QScrollArea):
         item_height = self._get_item_size_hint().height()
         total_height = item_height * self._adapter.get_num_items()
         self.widget().setFixedHeight(total_height)
+
+    def set_layout(self, layout: RecyclerLayout):
+        layout.setSizeConstraint(QtWidgets.QLayout.SetMinAndMaxSize)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        self.recycler.setLayout(layout)
 
     def get_bound_view(self, index: Index) -> Optional[QtWidgets.QWidget]:
         """Returns a view bound to the given index, or None if not bound."""
@@ -140,11 +146,11 @@ class RecyclerView(QtWidgets.QScrollArea):
                 self._bound_views[index] = view
         # layout items
         for view in self._unbound_views + list(self._bound_views.values()):
-            self.recycling_vbox.removeWidget(view)
+            self.recycler.layout().removeWidget(view)
             view.hide()
         for index in needed_indexes:
             view = self._bound_views[index]
-            self.recycling_vbox.addWidget(view)
+            self.recycler.layout().addWidget(view)
             view.show()
         self.recycler.move(0, buffered_view_top)
 
@@ -224,6 +230,7 @@ class MyList(QtWidgets.QWidget):
         data = [f"{i}" for i in range(20_000)]
         adapter = MyListAdapter(data)
         recycler_view.set_adapter(adapter)
+        recycler_view.set_layout(QtWidgets.QVBoxLayout())
         vbox1.addWidget(recycler_view)
 
 
