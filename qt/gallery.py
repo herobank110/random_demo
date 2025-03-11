@@ -26,6 +26,9 @@ Index = int
 
 
 class RecyclerViewAdapter(metaclass=abc.ABCMeta):
+    def __init__(self):
+        self._recycler: Optional["RecyclerView"] = None
+
     @abc.abstractmethod
     def create_view(self) -> QtWidgets.QWidget:
         """Create a fresh, empty item.
@@ -41,6 +44,10 @@ class RecyclerViewAdapter(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_num_items(self) -> int:
         """Return the number of items in the dataset."""
+
+    def get_bound_view(self, index: Index) -> Optional[QtWidgets.QWidget]:
+        """Returns a view bound to the given index, or None if not bound."""
+        return self._recycler.get_bound_view(index) if self._recycler else None
 
 
 class RecyclerView(QtWidgets.QScrollArea):
@@ -77,11 +84,16 @@ class RecyclerView(QtWidgets.QScrollArea):
 
     def set_adapter(self, adapter: RecyclerViewAdapter):
         self._adapter = adapter
+        self._adapter._recycler = self
 
         # TODO: move to other function
         item_height = self._get_item_size_hint().height()
         total_height = item_height * self._adapter.get_num_items()
         self.widget().setFixedHeight(total_height)
+
+    def get_bound_view(self, index: Index) -> Optional[QtWidgets.QWidget]:
+        """Returns a view bound to the given index, or None if not bound."""
+        return self._bound_views.get(index)
 
     def resizeEvent(self, event: QtGui.QResizeEvent):
         super().resizeEvent(event)
@@ -168,17 +180,33 @@ class RecyclerView(QtWidgets.QScrollArea):
 class MyListAdapter(RecyclerViewAdapter):
     def __init__(self, data):
         self.data = data
-        self.images = [QtGui.QPixmap.fromImage(generate_image(QtCore.QSize(240, 120), i)) for i in range(1000)]
+        self.images = {}
+
+    def _load_image(self, index: int):
+        image = QtGui.QPixmap.fromImage(generate_image(QtCore.QSize(240, 120), index))
+        self.images[index] = image
+        view = self.get_bound_view(index)
+        if view:
+            # item may have been scrolled out of view already
+            self.bind_view(view, index)
 
     def create_view(self) -> QtWidgets.QWidget:
         label = QtWidgets.QLabel()
-        label.setFixedHeight(120)
+        label.setFixedSize(QtCore.QSize(240, 120))
         label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
         return label
 
     def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
         label: QtWidgets.QLabel = view
-        label.setPixmap(self.images[index % len(self.images)])
+        if index in self.images:
+            # show already loaded image
+            label.setPixmap(self.images[index])
+            label.setText("")
+        else:
+            # load image (simulate loading delay)
+            label.setPixmap(QtGui.QPixmap())
+            label.setText("Loading...")
+            QtCore.QTimer.singleShot(500, functools.partial(self._load_image, index))
 
     def get_num_items(self) -> int:
         return len(self.data)
