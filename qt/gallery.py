@@ -69,10 +69,6 @@ class RecyclerView(QtWidgets.QScrollArea):
         # TODO list only for now, later grid too
         self.recycler = QtWidgets.QWidget()
         self.recycler.setParent(inner)
-        # e = self.recycler.event
-        # self.recycler.event = lambda event: (event.ignore() or print("even") or (QtCore.QCoreApplication.instance().postEvent(self, event) or None) or False) if event.type() == QtCore.QEvent.Wheel else e(event)
-        # self.recycler.installEventFilter(self._ignore_scroll_event_filter())
-        self.recycler.setMouseTracking(False)
         self.recycler.move(0, 0)
         self.recycling_vbox = QtWidgets.QVBoxLayout(self.recycler)
         self.recycling_vbox.setSizeConstraint(QtWidgets.QLayout.SetMinAndMaxSize)
@@ -90,11 +86,8 @@ class RecyclerView(QtWidgets.QScrollArea):
     def resizeEvent(self, event: QtGui.QResizeEvent):
         super().resizeEvent(event)
 
+        # TODO: move to update fn?
         self.recycler.setFixedWidth(self.widget().width())
-        # self.recycler.adjustSize()
-        # self.recycler.update()
-
-        self._ensure_enough_views_exist()
         self._bind_and_show()
 
     def _bind_and_show(self):
@@ -113,7 +106,6 @@ class RecyclerView(QtWidgets.QScrollArea):
         buffered_view_bottom = min(
             total_items_height, view_bottom + item_height * self._NUM_EXCESS_VIEWS
         )
-        vbox_top = buffered_view_top - view_top
 
         def item_at(height: int):
             return height // item_height
@@ -142,46 +134,7 @@ class RecyclerView(QtWidgets.QScrollArea):
             view = self._bound_views[index]
             self.recycling_vbox.addWidget(view)
             view.show()
-        # vbox_top = -partially_exposed_top - (buffered_view_top % item_height)
-        # vbox_top = -partially_exposed_top - (item_height * self._NUM_EXCESS_VIEWS)
-        # vbox_top = buffered_view_top - view_top - partially_exposed_top
-
-        # self.recycler.move(0, vbox_top)
-        # self.recycler.move(0, vbox_top * 0.5)
-        # self.recycler.move(0, view_top - vbox_top)
         self.recycler.move(0, buffered_view_top)
-        # print(f"{self.recycler.size()}                                                             \r", end="")
-
-        total_created_views = len(self._bound_views) + len(self._unbound_views)
-        print(
-            # f"viewhei{view_height:03d} {view_top:03d} {view_bottom:03d} {item_height:03d} {buffered_view_top:03d} {buffered_view_bottom:03d} {vbox_top:03d} {needed_indexes} {total_created_views:03d}         \r",
-            # f"viewheight{view_height:04d} view_top{view_top:04d} view_bottom{view_bottom:04d} item_height{item_height:04d} buffered_view_top{buffered_view_top:04d} buffered_view_bottom{buffered_view_bottom:04d} vbox_top{vbox_top:+04d} needed_indexes{needed_indexes} total_created_views{total_created_views:03d}         \r",
-            f"viewheight{view_height:04d} view_top{view_top:04d} buffered_view_top{buffered_view_top:04d} vbox_top{vbox_top:+04d} needed_indexes{needed_indexes} total_created_views{total_created_views:03d}        \r",
-            end="",
-        )
-
-        return
-        for index in range(len(self._adapter.data)):
-            view = self._get_fresh_view()
-            self._adapter.bind_view(view, index)
-            self._bound_views[index] = view
-            self._unbound_views.remove(view)
-            self.recycling_vbox.addWidget(view)
-
-            # view.show()
-            # self.recycler.adjustSize()
-            # # self.recycling_vbox.update()
-
-    def _ensure_enough_views_exist(self):
-        """Ensure that there are enough views to fill the visible area."""
-
-        item_height = self._get_item_size_hint().height()
-        total_possible_bound_views = self.height() // item_height + self._NUM_EXCESS_VIEWS
-
-        # Even if there are less items than views, create some empty
-        # ones since RecyclerView is typically used for large datasets.
-        while len(self._bound_views) + len(self._unbound_views) < total_possible_bound_views:
-            self._create_view()
 
     def _get_fresh_view(self) -> QtWidgets.QWidget:
         """Get an unbound view, or create one if none available."""
@@ -200,27 +153,8 @@ class RecyclerView(QtWidgets.QScrollArea):
         view = self._adapter.create_view()
         view.setParent(self.recycler)
         view.hide()  # is this needed?
-
-        # view.setMouseTracking(False)
-        # view.installEventFilter(self._ignore_scroll_event_filter())
-
         self._unbound_views.append(view)
         return view
-
-    @functools.lru_cache(maxsize=1)
-    def _ignore_scroll_event_filter(self):
-        class IgnoreScrollEventFilter(QtCore.QObject):
-            def eventFilter(self, obj, event):
-                # print(f"eventtype {type(event)}                    \r", end="")
-                if event.type() == QtCore.QEvent.Wheel:
-                    # event.accept()
-                    event.ignore()
-                    # event.ignore()
-                    return False
-                return False
-        obj = IgnoreScrollEventFilter()
-        obj.setParent(self)
-        return obj
 
     def _get_item_size_hint(self):
         return self._get_fresh_view().sizeHint()
@@ -229,7 +163,6 @@ class RecyclerView(QtWidgets.QScrollArea):
         # Called when the scroll area is scrolled.
         super().scrollContentsBy(dx, dy)
         self._bind_and_show()
-        # self.recycler.move(0, -self.verticalScrollBar().value())
 
 
 class MyListAdapter(RecyclerViewAdapter):
@@ -241,15 +174,11 @@ class MyListAdapter(RecyclerViewAdapter):
         label = QtWidgets.QLabel()
         label.setFixedHeight(120)
         label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
-        e = label.event
-        label.event = lambda event: (event.ignore() or False) if event.type() == QtCore.QEvent.Wheel else e(event)
         return label
 
     def bind_view(self, view: QtWidgets.QWidget, index: Index) -> None:
         label: QtWidgets.QLabel = view
         label.setPixmap(self.images[index % len(self.images)])
-        # view.setText(self.data[index])
-        # view.setStyleSheet(f"background-color: {'#888888' if index % 2 == 0 else '#666666'}")
 
     def get_num_items(self) -> int:
         return len(self.data)
@@ -264,7 +193,6 @@ class MyList(QtWidgets.QWidget):
         vbox1.setSpacing(0)
 
         recycler_view = RecyclerView()
-        # data = [f"Item {i + 1:04d}" for i in range(5)]
         data = [f"{i}" for i in range(20_000)]
         adapter = MyListAdapter(data)
         recycler_view.set_adapter(adapter)
