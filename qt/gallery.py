@@ -62,12 +62,15 @@ RecyclerLayout = Union[QtWidgets.QVBoxLayout, QtWidgets.QGridLayout]
 
 
 class RecyclerView(QtWidgets.QScrollArea):
-    """A scrollable container used to efficiently show a large number of items."""
+    """A scrollable container that efficiently shows a large number of items.
+
+    Based on the RecyclerView from Android.
+    """
 
     _NUM_EXCESS_VIEWS = 3
     """The number of views outside of the visible area to prepare for quick scrolling."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self._adapter: Optional[RecyclerViewAdapter] = None
@@ -82,14 +85,16 @@ class RecyclerView(QtWidgets.QScrollArea):
         self.setWidgetResizable(True)
 
         self._inner = QtWidgets.QWidget()
+        """Inner widget to fill out the total scrolling height."""
         self.setWidget(self._inner)
 
-        # TODO list only for now, later grid too
-        self.recycler = QtWidgets.QWidget()
-        self.recycler.setParent(self._inner)
-        self.recycler.move(0, 0)
+        self._recycler = QtWidgets.QWidget()
+        """Holds the actual views."""
+        self._recycler.setParent(self._inner)
+        self._recycler.move(0, 0)
 
-    def set_adapter(self, adapter: RecyclerViewAdapter):
+    def set_adapter(self, adapter: RecyclerViewAdapter) -> None:
+        """Set the adapter for providing custom views."""
         self._adapter = adapter
         self._adapter._recycler = self
         self.update()
@@ -99,7 +104,7 @@ class RecyclerView(QtWidgets.QScrollArea):
         layout.setSizeConstraint(QtWidgets.QLayout.SetMinAndMaxSize)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        self.recycler.setLayout(layout)
+        self._recycler.setLayout(layout)
         self.update()
 
     def get_bound_view(self, index: Index) -> Optional[QtWidgets.QWidget]:
@@ -107,30 +112,30 @@ class RecyclerView(QtWidgets.QScrollArea):
         return self._bound_views.get(index)
 
     @property
-    def _is_grid(self):
-        return isinstance(self.recycler.layout(), QtWidgets.QGridLayout)
+    def _is_grid(self) -> bool:
+        return isinstance(self._recycler.layout(), QtWidgets.QGridLayout)
 
     @property
-    def _is_vbox(self):
-        return isinstance(self.recycler.layout(), QtWidgets.QVBoxLayout)
+    def _is_vbox(self) -> bool:
+        return isinstance(self._recycler.layout(), QtWidgets.QVBoxLayout)
 
     @property
-    def _total_num_items(self):
+    def _total_num_items(self) -> int:
         return self._adapter.get_num_items()
 
-    def _get_num_cols(self):
+    def _get_num_cols(self) -> int:
         return max(1, self.width() // self._get_item_size_hint().width()) if self._is_grid else 1
 
-    def _get_item_height(self):
+    def _get_item_height(self) -> int:
         return self._get_item_size_hint().height()
 
-    def _get_total_items_height(self):
+    def _get_total_items_height(self) -> int:
         return math.ceil(self._total_num_items / self._get_num_cols()) * self._get_item_height()
 
-    def _get_item_size_hint(self):
+    def _get_item_size_hint(self) -> QtCore.QSize:
         return self._get_fresh_view().sizeHint()
 
-    def _get_view_rect(self):
+    def _get_view_rect(self) -> QtCore.QRect:
         """Returns the bounding region of the scroll area that is currently visible."""
         ret_val = QtCore.QRect()
         ret_val.setTop(self.verticalScrollBar().value())
@@ -138,7 +143,7 @@ class RecyclerView(QtWidgets.QScrollArea):
         ret_val.setWidth(self.width())
         return ret_val
 
-    def _get_buffered_view_rect(self):
+    def _get_buffered_view_rect(self) -> QtCore.QRect:
         """Returns the bounding region of the views that should be shown."""
         ret_val = QtCore.QRect()
         view_rect = self._get_view_rect()
@@ -158,7 +163,7 @@ class RecyclerView(QtWidgets.QScrollArea):
         ret_val.setWidth(view_rect.width())
         return ret_val
 
-    def _get_needed_indices(self):
+    def _get_needed_indices(self) -> List[Index]:
         def items_at(height: int):
             row_start_index = (height // self._get_item_height()) * self._get_num_cols()
             return (row_start_index + i for i in range(self._get_num_cols()))
@@ -167,7 +172,7 @@ class RecyclerView(QtWidgets.QScrollArea):
         rows = range(buffered_view.top(), buffered_view.bottom(), self._get_item_height())
         return list(itertools.chain.from_iterable(map(items_at, rows)))
 
-    def _rebuild_views(self):
+    def _rebuild_views(self) -> None:
         needed_indices = self._get_needed_indices()
         # recycle old views
         for index in list(self._bound_views.keys()):
@@ -182,20 +187,20 @@ class RecyclerView(QtWidgets.QScrollArea):
                 self._bound_views[index] = view
         # layout items
         for view in self._unbound_views + list(self._bound_views.values()):
-            self.recycler.layout().removeWidget(view)
+            self._recycler.layout().removeWidget(view)
             view.hide()
         for index in needed_indices:
             view = self._bound_views[index]
             if self._is_grid:
                 row = index // self._get_num_cols()
                 col = index % self._get_num_cols()
-                self.recycler.layout().addWidget(view, row, col)
+                self._recycler.layout().addWidget(view, row, col)
             else:
-                self.recycler.layout().addWidget(view)
+                self._recycler.layout().addWidget(view)
             view.show()
-        # move layout to false top position
+        # Move layout to the false top position.
         buffered_view = self._get_buffered_view_rect()
-        self.recycler.move(0, buffered_view.top())
+        self._recycler.move(0, buffered_view.top())
 
     def _get_fresh_view(self) -> QtWidgets.QWidget:
         """Get an unbound view, or create one if none available."""
@@ -209,31 +214,31 @@ class RecyclerView(QtWidgets.QScrollArea):
         self._unbound_views.remove(view)  # Now remove it.
         return view
 
-    def _create_view(self):
+    def _create_view(self) -> QtWidgets.QWidget:
         """Create a new view and add it to the pool."""
         view = self._adapter.create_view()
-        view.setParent(self.recycler)
+        view.setParent(self._recycler)
         view.hide()  # is this needed?
         self._unbound_views.append(view)
         return view
 
     # Qt Events
 
-    def update(self):
+    def update(self) -> None:
         super().update()
-        if self._adapter is None or self.recycler.layout() is None:
+        if self._adapter is None or self._recycler.layout() is None:
             # not fully initialized yet
             return
 
         self._inner.setFixedHeight(self._get_total_items_height())
-        self.recycler.setFixedWidth(self.widget().width())
+        self._recycler.setFixedWidth(self.widget().width())
         self._rebuild_views()
 
-    def resizeEvent(self, event: QtGui.QResizeEvent):
+    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
         super().resizeEvent(event)
         self.update()
 
-    def scrollContentsBy(self, dx, dy):
+    def scrollContentsBy(self, dx: int, dy: int) -> None:
         # Called when the scroll area is scrolled.
         super().scrollContentsBy(dx, dy)
         self.update()
