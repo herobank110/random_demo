@@ -111,6 +111,56 @@ class RecyclerView(QtWidgets.QScrollArea):
         """Returns a view bound to the given index, or None if not bound."""
         return self._bound_views.get(index)
 
+    def _rebuild_views(self) -> None:
+        needed_indices = self._get_needed_indices()
+        # recycle old views
+        for index in list(self._bound_views.keys()):
+            if index not in needed_indices:
+                view = self._bound_views.pop(index)
+                self._unbound_views.append(view)
+        # bind new views
+        for index in needed_indices:
+            if index not in self._bound_views:
+                view = self._take_fresh_view()
+                self._adapter.bind_view(view, index)
+                self._bound_views[index] = view
+        # layout items
+        for view in self._unbound_views + list(self._bound_views.values()):
+            self._recycler.layout().removeWidget(view)
+            view.hide()
+        for index in needed_indices:
+            view = self._bound_views[index]
+            if self._is_grid:
+                row = index // self._get_num_cols()
+                col = index % self._get_num_cols()
+                self._recycler.layout().addWidget(view, row, col)
+            else:
+                self._recycler.layout().addWidget(view)
+            view.show()
+        # Move layout to the false top position.
+        buffered_view = self._get_buffered_view_rect()
+        self._recycler.move(0, buffered_view.top())
+
+    def _get_fresh_view(self) -> QtWidgets.QWidget:
+        """Get an unbound view, or create one if none available."""
+        if not self._unbound_views:
+            self._create_view()  # Ensure at least one exists.
+        return self._unbound_views[0]
+
+    def _take_fresh_view(self) -> QtWidgets.QWidget:
+        """Get a fresh view to be bound immediately (not added to pool)."""
+        view = self._get_fresh_view()  # This ensures it's in the pool.
+        self._unbound_views.remove(view)  # Now remove it.
+        return view
+
+    def _create_view(self) -> QtWidgets.QWidget:
+        """Create a new view and add it to the pool."""
+        view = self._adapter.create_view()
+        view.setParent(self._recycler)
+        view.hide()  # is this needed?
+        self._unbound_views.append(view)
+        return view
+    
     @property
     def _is_grid(self) -> bool:
         return isinstance(self._recycler.layout(), QtWidgets.QGridLayout)
@@ -171,58 +221,6 @@ class RecyclerView(QtWidgets.QScrollArea):
         buffered_view = self._get_buffered_view_rect()
         rows = range(buffered_view.top(), buffered_view.bottom(), self._get_item_height())
         return list(itertools.chain.from_iterable(map(items_at, rows)))
-
-    def _rebuild_views(self) -> None:
-        needed_indices = self._get_needed_indices()
-        # recycle old views
-        for index in list(self._bound_views.keys()):
-            if index not in needed_indices:
-                view = self._bound_views.pop(index)
-                self._unbound_views.append(view)
-        # bind new views
-        for index in needed_indices:
-            if index not in self._bound_views:
-                view = self._take_fresh_view()
-                self._adapter.bind_view(view, index)
-                self._bound_views[index] = view
-        # layout items
-        for view in self._unbound_views + list(self._bound_views.values()):
-            self._recycler.layout().removeWidget(view)
-            view.hide()
-        for index in needed_indices:
-            view = self._bound_views[index]
-            if self._is_grid:
-                row = index // self._get_num_cols()
-                col = index % self._get_num_cols()
-                self._recycler.layout().addWidget(view, row, col)
-            else:
-                self._recycler.layout().addWidget(view)
-            view.show()
-        # Move layout to the false top position.
-        buffered_view = self._get_buffered_view_rect()
-        self._recycler.move(0, buffered_view.top())
-
-    def _get_fresh_view(self) -> QtWidgets.QWidget:
-        """Get an unbound view, or create one if none available."""
-        if not self._unbound_views:
-            self._create_view()  # Ensure at least one exists.
-        return self._unbound_views[0]
-
-    def _take_fresh_view(self) -> QtWidgets.QWidget:
-        """Get a fresh view to be bound immediately (not added to pool)."""
-        view = self._get_fresh_view()  # This ensures it's in the pool.
-        self._unbound_views.remove(view)  # Now remove it.
-        return view
-
-    def _create_view(self) -> QtWidgets.QWidget:
-        """Create a new view and add it to the pool."""
-        view = self._adapter.create_view()
-        view.setParent(self._recycler)
-        view.hide()  # is this needed?
-        self._unbound_views.append(view)
-        return view
-
-    # Qt Events
 
     def update(self) -> None:
         super().update()
