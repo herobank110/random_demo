@@ -142,7 +142,7 @@ class RecyclerView(QtWidgets.QScrollArea):
         """Returns the bounding region of the views that should be shown."""
         ret_val = QtCore.QRect()
         view_rect = self._get_view_rect()
-        item_height = self._get_item_height
+        item_height = self._get_item_height()
         partially_exposed_top = view_rect.top() % item_height
         ret_val.setTop(
             view_rect.top()
@@ -151,7 +151,7 @@ class RecyclerView(QtWidgets.QScrollArea):
         )
         ret_val.setBottom(
             min(
-                self._get_total_items_height,
+                self._get_total_items_height(),
                 view_rect.bottom() + item_height * self._NUM_EXCESS_VIEWS,
             )
         )
