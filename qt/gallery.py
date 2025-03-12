@@ -111,6 +111,25 @@ class RecyclerView(QtWidgets.QScrollArea):
         """Returns a view bound to the given index, or None if not bound."""
         return self._bound_views.get(index)
 
+    def update(self) -> None:
+        super().update()
+        if self._adapter is None or self._recycler.layout() is None:
+            # not fully initialized yet
+            return
+
+        self._inner.setFixedHeight(self._get_total_items_height())
+        self._recycler.setFixedWidth(self.widget().width())
+        self._rebuild_views()
+
+    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
+        super().resizeEvent(event)
+        self.update()
+
+    def scrollContentsBy(self, dx: int, dy: int) -> None:
+        # Called when the scroll area is scrolled.
+        super().scrollContentsBy(dx, dy)
+        self.update()
+
     def _rebuild_views(self) -> None:
         needed_indices = self._get_needed_indices()
         # recycle old views
@@ -174,6 +193,7 @@ class RecyclerView(QtWidgets.QScrollArea):
         return self._adapter.get_num_items()
 
     def _get_num_cols(self) -> int:
+        """Always think in columns. VBox just counts as 1 column."""
         return max(1, self.width() // self._get_item_size_hint().width()) if self._is_grid else 1
 
     def _get_item_height(self) -> int:
@@ -221,25 +241,6 @@ class RecyclerView(QtWidgets.QScrollArea):
         buffered_view = self._get_buffered_view_rect()
         rows = range(buffered_view.top(), buffered_view.bottom(), self._get_item_height())
         return list(itertools.chain.from_iterable(map(items_at, rows)))
-
-    def update(self) -> None:
-        super().update()
-        if self._adapter is None or self._recycler.layout() is None:
-            # not fully initialized yet
-            return
-
-        self._inner.setFixedHeight(self._get_total_items_height())
-        self._recycler.setFixedWidth(self.widget().width())
-        self._rebuild_views()
-
-    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
-        super().resizeEvent(event)
-        self.update()
-
-    def scrollContentsBy(self, dx: int, dy: int) -> None:
-        # Called when the scroll area is scrolled.
-        super().scrollContentsBy(dx, dy)
-        self.update()
 
 
 class MyGalleryAdapter(RecyclerViewAdapter):
