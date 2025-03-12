@@ -132,21 +132,23 @@ class RecyclerView(QtWidgets.QScrollArea):
 
     def _rebuild_views(self) -> None:
         needed_indices = self._get_needed_indices()
-        # recycle old views
+        # Recycle old views.
         for index in list(self._bound_views.keys()):
+            # Don't bother rebinding views that are still needed.
             if index not in needed_indices:
                 view = self._bound_views.pop(index)
                 self._unbound_views.append(view)
-        # bind new views
+        # Hide all for now. Needed ones will be shown later.
+        for view in self._unbound_views + list(self._bound_views.values()):
+            self._recycler.layout().removeWidget(view)
+            view.hide()
+        # Bind new views.
         for index in needed_indices:
             if index not in self._bound_views:
                 view = self._take_fresh_view()
                 self._adapter.bind_view(view, index)
                 self._bound_views[index] = view
-        # layout items
-        for view in self._unbound_views + list(self._bound_views.values()):
-            self._recycler.layout().removeWidget(view)
-            view.hide()
+        # Add to layout.
         for index in needed_indices:
             view = self._bound_views[index]
             if self._is_grid:
