@@ -1,0 +1,31 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+processors:
+extensions:
+  health_check: {}
+exporters:
+  elasticsearch:
+    endpoint: http://elasticsearch:9200
+  debug:
+    verbosity: detailed
+  # otlp/jaeger:
+  #   endpoint: jaeger:4317
+  #   tls:
+  #     insecure: true
+  # prometheus:
+  #   endpoint: "0.0.0.0:9090"
+service:
+  pipelines:
+    # traces:
+    #   receivers: [otlp]
+    #   exporters: [otlp/jaeger]
+    traces:
+      receivers: [otlp]
+      exporters: [debug, elasticsearch]
+
+    metrics:
+      receivers: [otlp]
+      exporters: [elasticsearch]

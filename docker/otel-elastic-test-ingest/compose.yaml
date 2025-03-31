@@ -1,0 +1,31 @@
+services:
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.122.1
+    volumes:
+      - ./collector-config.yaml:/etc/otelcol/config.yaml
+    ports:
+      - 4317:4317  # OTLP gRPC
+    command:
+      - "--config=/etc/otelcol/config.yaml"
+
+  # jaeger:
+  #   image: jaegertracing/all-in-one:1.6.0
+  #   ports:
+  #     - 16686:16686  # Jaeger UI
+
+  elasticsearch:
+    image: elasticsearch:8.17.0
+    environment:
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+    #   - xpack.security.enabled=false
+    #   - xpack.watcher.enabled=false
+    #   - xpack.ml.enabled=false
+    ports:
+      - 9200:9200
+
+  web:
+    image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:latest
+    network_mode: host
+    entrypoint: [ "/telemetrygen", "metrics", "--otlp-insecure", "--otlp-endpoint", "host.docker.internal:4317" ]
